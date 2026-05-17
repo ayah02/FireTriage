@@ -3,330 +3,176 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Project IgnitionHorizon — FireTriage Dashboard</title>
-  <meta name="description" content="Wildfire tactical triage dashboard with AI copilot. Real-time fire spread probability predictions powered by survival analysis." />
+  <title>FireTriage — Project IgnitionHorizon</title>
+  <meta name="description" content="Wildfire tactical triage dashboard with AI copilot and survival analysis ML." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
-    :root {
-      --bg:        #111111;
-      --bg2:       #1a1a1a;
-      --bg3:       #222222;
-      --border:    #2a2a2a;
-      --critical:  #FF4B4B;
-      --elevated:  #FF9F1C;
-      --stable:    #2EC4B6;
-      --text:      #f0f0f0;
-      --muted:     #888888;
-      --card-bg:   #181818;
-    }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     html { scroll-behavior: smooth; }
 
     body {
-      background: var(--bg);
-      color: var(--text);
       font-family: 'Inter', sans-serif;
+      background: #0f0f0f;
+      color: #e8e8e8;
       line-height: 1.6;
-      overflow-x: hidden;
     }
 
-    /* ── NAV ── */
+    a { color: inherit; text-decoration: none; }
+
+    /* NAV */
     nav {
-      position: fixed; top: 0; width: 100%; z-index: 100;
-      background: rgba(17,17,17,0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem;
+      position: fixed; top: 0; width: 100%; z-index: 99;
+      background: rgba(15,15,15,0.9); backdrop-filter: blur(10px);
+      border-bottom: 1px solid #1e1e1e;
       display: flex; align-items: center; justify-content: space-between;
-      height: 60px;
+      padding: 0 1.5rem; height: 56px;
     }
-    .nav-brand {
-      display: flex; align-items: center; gap: 0.5rem;
-      font-weight: 700; font-size: 1rem; letter-spacing: 0.5px;
-      color: var(--text); text-decoration: none;
+    .brand { font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem; }
+    .nav-btn {
+      background: #FF4B4B; color: #fff;
+      padding: 0.4rem 1rem; border-radius: 6px;
+      font-size: 0.82rem; font-weight: 600;
+      transition: opacity 0.15s;
     }
-    .nav-brand .flame { font-size: 1.3rem; }
-    .nav-links { display: flex; gap: 1.5rem; align-items: center; }
-    .nav-links a {
-      color: var(--muted); text-decoration: none; font-size: 0.875rem;
-      font-weight: 500; transition: color 0.2s;
-    }
-    .nav-links a:hover { color: var(--text); }
-    .nav-cta {
-      background: var(--critical); color: #fff !important;
-      padding: 0.4rem 1rem; border-radius: 6px; font-weight: 600 !important;
-      transition: opacity 0.2s !important;
-    }
-    .nav-cta:hover { opacity: 0.85; color: #fff !important; }
+    .nav-btn:hover { opacity: 0.8; }
 
-    /* ── HERO ── */
+    /* HERO */
     .hero {
       min-height: 100vh;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      text-align: center; padding: 6rem 2rem 4rem;
-      position: relative; overflow: hidden;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 5rem 1.5rem 3rem;
     }
-    .hero::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse 80% 60% at 50% 40%, rgba(255,75,75,0.12) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .hero-badge {
+    .badge {
       display: inline-flex; align-items: center; gap: 0.4rem;
-      background: rgba(255,75,75,0.15); border: 1px solid rgba(255,75,75,0.3);
-      color: var(--critical); padding: 0.3rem 0.8rem; border-radius: 999px;
-      font-size: 0.75rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
-      margin-bottom: 1.5rem;
+      border: 1px solid #2a2a2a; background: #181818;
+      padding: 0.3rem 0.9rem; border-radius: 999px;
+      font-size: 0.72rem; font-weight: 600; letter-spacing: 0.8px;
+      text-transform: uppercase; color: #888; margin-bottom: 2rem;
     }
-    .pulse-dot {
-      width: 7px; height: 7px; border-radius: 50%; background: var(--critical);
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%,100% { opacity: 1; transform: scale(1); }
-      50%      { opacity: 0.4; transform: scale(0.7); }
-    }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #FF4B4B; animation: blink 1.5s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
     .hero h1 {
-      font-size: clamp(2.8rem, 6vw, 5rem); font-weight: 900;
-      line-height: 1.05; letter-spacing: -2px; margin-bottom: 1rem;
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 800; letter-spacing: -1.5px; line-height: 1.05;
+      margin-bottom: 1.25rem;
     }
-    .hero h1 .accent { color: var(--critical); }
+    .hero h1 span { color: #FF4B4B; }
     .hero p {
-      max-width: 600px; color: var(--muted); font-size: 1.125rem;
-      margin: 0 auto 2.5rem; line-height: 1.7;
+      max-width: 520px; color: #777; font-size: 1rem;
+      margin: 0 auto 2.5rem;
     }
-    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
-    .btn {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600;
-      font-size: 0.9rem; text-decoration: none; transition: all 0.2s; cursor: pointer;
+    .hero-btns { display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; }
+    .btn-red {
+      background: #FF4B4B; color: #fff;
+      padding: 0.7rem 1.4rem; border-radius: 7px;
+      font-weight: 600; font-size: 0.88rem;
+      transition: opacity 0.15s;
     }
-    .btn-primary {
-      background: var(--critical); color: #fff;
+    .btn-red:hover { opacity: 0.85; }
+    .btn-ghost {
+      background: #1a1a1a; color: #ccc; border: 1px solid #2a2a2a;
+      padding: 0.7rem 1.4rem; border-radius: 7px;
+      font-weight: 600; font-size: 0.88rem;
+      transition: background 0.15s;
     }
-    .btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
-    .btn-secondary {
-      background: var(--bg3); color: var(--text); border: 1px solid var(--border);
-    }
-    .btn-secondary:hover { background: var(--border); transform: translateY(-1px); }
+    .btn-ghost:hover { background: #222; }
 
-    /* ── RISK STRIP ── */
-    .risk-strip {
-      display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;
-      margin-top: 3.5rem;
+    /* RISK TAGS */
+    .risks { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; margin-top: 2.5rem; }
+    .risk {
+      display: flex; align-items: center; gap: 0.4rem;
+      background: #181818; border: 1px solid #222;
+      padding: 0.35rem 0.8rem; border-radius: 999px;
+      font-size: 0.75rem; font-weight: 600;
     }
-    .risk-pill {
-      display: flex; align-items: center; gap: 0.5rem;
-      background: var(--card-bg); border: 1px solid var(--border);
-      padding: 0.5rem 1rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600;
-    }
-    .risk-pill .dot { width: 9px; height: 9px; border-radius: 50%; }
+    .risk-dot { width: 8px; height: 8px; border-radius: 50%; }
 
-    /* ── SECTIONS ── */
-    section { padding: 5rem 2rem; }
-    .container { max-width: 1100px; margin: 0 auto; }
-    .section-label {
-      font-size: 0.7rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
-      color: var(--stable); margin-bottom: 0.75rem;
+    /* APP EMBED */
+    .embed-section {
+      background: #0a0a0a; border-top: 1px solid #1e1e1e;
+      padding: 4rem 1.5rem;
     }
-    .section-title {
-      font-size: clamp(1.8rem, 3vw, 2.6rem); font-weight: 800;
-      letter-spacing: -1px; margin-bottom: 1rem;
+    .embed-wrap {
+      max-width: 1100px; margin: 0 auto;
     }
-    .section-sub { color: var(--muted); max-width: 560px; font-size: 1rem; }
+    .section-heading { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .section-sub { color: #666; font-size: 0.9rem; margin-bottom: 2rem; }
 
-    /* ── DEMO FRAME ── */
-    .demo-section { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-    .demo-wrap {
-      border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
-      box-shadow: 0 0 60px rgba(255,75,75,0.08);
-      background: var(--bg);
+    .frame-shell {
+      border: 1px solid #1e1e1e; border-radius: 10px; overflow: hidden;
     }
-    .demo-bar {
-      display: flex; align-items: center; gap: 0.5rem;
-      padding: 0.7rem 1rem; background: var(--bg3);
-      border-bottom: 1px solid var(--border);
+    .frame-bar {
+      background: #141414; border-bottom: 1px solid #1e1e1e;
+      padding: 0.6rem 1rem; display: flex; align-items: center; gap: 0.4rem;
     }
-    .demo-bar .dot { width: 12px; height: 12px; border-radius: 50%; }
-    .demo-bar .url-bar {
-      flex: 1; background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 4px; padding: 0.25rem 0.75rem;
-      font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--muted);
-      margin-left: 0.5rem;
+    .frame-bar .c { width: 11px; height: 11px; border-radius: 50%; }
+    .frame-url {
+      margin-left: 0.5rem; background: #0f0f0f; border: 1px solid #1e1e1e;
+      border-radius: 4px; padding: 0.2rem 0.7rem;
+      font-size: 0.72rem; color: #555; flex: 1;
+      font-family: monospace;
     }
-    .demo-frame-container {
-      position: relative; width: 100%; padding-top: 56.25%; /* 16:9 */
+    .frame-container { position: relative; padding-top: 56.25%; }
+    .frame-container iframe {
+      position: absolute; inset: 0; width: 100%; height: 100%; border: none;
     }
-    .demo-frame-container iframe {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      border: none;
+
+    /* FEATURES */
+    .features-section { padding: 4rem 1.5rem; }
+    .features-grid {
+      max-width: 1000px; margin: 2rem auto 0;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1px; background: #1e1e1e; border: 1px solid #1e1e1e; border-radius: 10px; overflow: hidden;
     }
-    .demo-overlay {
-      position: absolute; inset: 0;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: rgba(17,17,17,0.92);
+    .feat {
+      background: #111; padding: 1.5rem;
+      transition: background 0.15s;
+    }
+    .feat:hover { background: #161616; }
+    .feat-icon { font-size: 1.4rem; margin-bottom: 0.75rem; }
+    .feat h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .feat p  { font-size: 0.8rem; color: #666; line-height: 1.55; }
+
+    /* LINKS */
+    .links-section {
+      background: #0a0a0a; border-top: 1px solid #1e1e1e;
+      padding: 4rem 1.5rem;
+    }
+    .links-grid {
+      max-width: 900px; margin: 2rem auto 0;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 1rem;
     }
-    .demo-overlay p { color: var(--muted); font-size: 0.9rem; }
-
-    /* ── FEATURES ── */
-    .features-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1.5rem; margin-top: 3rem;
-    }
-    .feature-card {
-      background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: 12px; padding: 1.75rem;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-    .feature-card:hover { border-color: rgba(255,75,75,0.4); transform: translateY(-3px); }
-    .feature-icon {
-      width: 44px; height: 44px; border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.4rem; margin-bottom: 1rem;
-    }
-    .feature-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
-    .feature-card p { color: var(--muted); font-size: 0.875rem; line-height: 1.6; }
-
-    /* ── ML PIPELINE ── */
-    .pipeline-section { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
-    .pipeline-steps {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 0; margin-top: 3rem; position: relative;
-    }
-    .pipeline-step {
-      background: var(--card-bg); border: 1px solid var(--border);
-      padding: 1.5rem; text-align: center; position: relative;
-    }
-    .pipeline-step:not(:last-child)::after {
-      content: '→';
-      position: absolute; right: -14px; top: 50%; transform: translateY(-50%);
-      color: var(--muted); font-size: 1.2rem; z-index: 1;
-    }
-    .pipeline-step:first-child { border-radius: 10px 0 0 10px; }
-    .pipeline-step:last-child  { border-radius: 0 10px 10px 0; }
-    .pipeline-step .step-num {
-      font-size: 0.65rem; font-weight: 700; letter-spacing: 1.5px;
-      text-transform: uppercase; color: var(--stable); margin-bottom: 0.4rem;
-    }
-    .pipeline-step h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.4rem; }
-    .pipeline-step p  { font-size: 0.75rem; color: var(--muted); }
-
-    /* ── HORIZONS TABLE ── */
-    .horizons { margin-top: 3rem; }
-    .horizons-grid {
-      display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-top: 1.5rem;
-    }
-    .horizon-card {
-      background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: 10px; padding: 1.25rem; text-align: center;
-    }
-    .horizon-card .label { font-size: 0.7rem; color: var(--muted); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
-    .horizon-card .value { font-size: 2rem; font-weight: 800; margin: 0.3rem 0; }
-    .horizon-card .desc  { font-size: 0.75rem; color: var(--muted); }
-
-    /* ── AI COPILOT ── */
-    .chat-preview {
-      background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: 12px; overflow: hidden; margin-top: 2.5rem;
-    }
-    .chat-topbar {
-      background: var(--bg3); padding: 0.75rem 1.25rem;
-      border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: 0.75rem;
-      font-size: 0.85rem; font-weight: 600;
-    }
-    .chat-topbar .ai-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--stable); animation: pulse 2s ease-in-out infinite; }
-    .chat-messages { padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
-    .msg {
-      display: flex; gap: 0.75rem; max-width: 85%;
-    }
-    .msg.user  { align-self: flex-end; flex-direction: row-reverse; }
-    .msg-avatar {
-      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.85rem; font-weight: 700;
-    }
-    .msg.ai .msg-avatar   { background: rgba(46,196,182,0.2); color: var(--stable); }
-    .msg.user .msg-avatar { background: rgba(255,75,75,0.2); color: var(--critical); }
-    .msg-bubble {
-      background: var(--bg3); border: 1px solid var(--border);
-      border-radius: 10px; padding: 0.75rem 1rem;
-      font-size: 0.85rem; line-height: 1.6; color: var(--text);
-    }
-    .msg.user .msg-bubble { background: rgba(255,75,75,0.12); border-color: rgba(255,75,75,0.25); }
-    .chat-input-bar {
-      padding: 0.75rem 1.25rem; border-top: 1px solid var(--border);
-      display: flex; align-items: center; gap: 0.75rem;
-    }
-    .chat-input-bar input {
-      flex: 1; background: var(--bg3); border: 1px solid var(--border);
-      border-radius: 6px; padding: 0.5rem 0.75rem;
-      color: var(--muted); font-size: 0.8rem; outline: none; font-family: inherit;
-    }
-    .chat-send {
-      background: var(--stable); border: none; border-radius: 6px;
-      padding: 0.5rem 0.9rem; color: #fff; font-size: 0.8rem;
-      font-weight: 600; cursor: pointer;
-    }
-
-    /* ── TECH STACK ── */
-    .stack-grid {
-      display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2rem;
-    }
-    .stack-tag {
-      background: var(--bg3); border: 1px solid var(--border);
-      padding: 0.4rem 0.9rem; border-radius: 6px;
-      font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--muted);
-      transition: color 0.2s, border-color 0.2s;
-    }
-    .stack-tag:hover { color: var(--text); border-color: rgba(46,196,182,0.5); }
-
-    /* ── LINKS ── */
-    .links-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 1.5rem; margin-top: 2.5rem;
-    }
     .link-card {
-      background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: 12px; padding: 1.5rem;
-      text-decoration: none; color: var(--text);
-      display: flex; flex-direction: column; gap: 0.5rem;
-      transition: border-color 0.2s, transform 0.2s;
+      background: #111; border: 1px solid #1e1e1e; border-radius: 10px;
+      padding: 1.5rem; display: flex; flex-direction: column; gap: 0.4rem;
+      transition: border-color 0.2s, transform 0.15s;
     }
-    .link-card:hover { transform: translateY(-3px); }
-    .link-card.hf:hover  { border-color: rgba(255,159,28,0.5); }
-    .link-card.gh:hover  { border-color: rgba(46,196,182,0.5); }
-    .link-card .lc-icon { font-size: 2rem; margin-bottom: 0.25rem; }
-    .link-card .lc-title { font-size: 1rem; font-weight: 700; }
-    .link-card .lc-url { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--muted); word-break: break-all; }
-    .link-card .lc-desc { font-size: 0.82rem; color: var(--muted); margin-top: 0.25rem; }
-    .lc-arrow { margin-top: auto; font-size: 0.8rem; color: var(--muted); }
+    .link-card:hover { transform: translateY(-2px); }
+    .link-card.app:hover  { border-color: rgba(255,75,75,0.4); }
+    .link-card.gh:hover   { border-color: rgba(46,196,182,0.4); }
+    .lc-icon { font-size: 1.6rem; }
+    .lc-title { font-size: 0.95rem; font-weight: 700; margin-top: 0.25rem; }
+    .lc-url { font-size: 0.72rem; color: #555; font-family: monospace; }
+    .lc-desc { font-size: 0.8rem; color: #666; margin-top: 0.25rem; }
+    .lc-go { margin-top: auto; padding-top: 0.75rem; font-size: 0.8rem; color: #555; }
 
-    /* ── FOOTER ── */
+    /* CENTER HELPER */
+    .center { text-align: center; }
+    .max-w { max-width: 1000px; margin: 0 auto; }
+
+    /* FOOTER */
     footer {
-      border-top: 1px solid var(--border); padding: 2rem;
-      text-align: center; color: var(--muted); font-size: 0.8rem;
+      border-top: 1px solid #1a1a1a;
+      padding: 2rem 1.5rem;
+      text-align: center; font-size: 0.78rem; color: #444;
     }
-    footer a { color: var(--muted); }
-    footer strong { color: var(--text); }
 
-    /* ── SCROLLBAR ── */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-    @media (max-width: 640px) {
-      .pipeline-steps { grid-template-columns: 1fr; }
-      .pipeline-step:not(:last-child)::after { content: '↓'; right: auto; bottom: -14px; top: auto; left: 50%; transform: translateX(-50%); }
-      .pipeline-step:first-child { border-radius: 10px 10px 0 0; }
-      .pipeline-step:last-child  { border-radius: 0 0 10px 10px; }
-      .horizons-grid { grid-template-columns: repeat(2,1fr); }
-      nav .nav-links { display: none; }
+    @media (max-width: 500px) {
+      .hero h1 { letter-spacing: -1px; }
     }
   </style>
 </head>
@@ -334,320 +180,117 @@
 
 <!-- NAV -->
 <nav>
-  <a class="nav-brand" href="#">
-    <span class="flame">🔥</span> FireTriage
-  </a>
-  <div class="nav-links">
-    <a href="#features">Features</a>
-    <a href="#pipeline">ML Pipeline</a>
-    <a href="#copilot">AI Copilot</a>
-    <a href="#launch">Launch</a>
-    <a class="nav-cta" href="https://huggingface.co/spaces/AYAHAlqassab/FireTriage" target="_blank">Open App →</a>
-  </div>
+  <div class="brand">🔥 FireTriage</div>
+  <a class="nav-btn" href="https://huggingface.co/spaces/AYAHAlqassab/FireTriage" target="_blank">Open App →</a>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-badge">
-    <span class="pulse-dot"></span>
-    WiDS Global Datathon 2026 · Survival Analysis Framework
+  <div class="badge"><span class="dot"></span> WiDS Datathon 2026 · Live</div>
+  <h1>Project<br /><span>IgnitionHorizon</span></h1>
+  <p>Wildfire tactical triage dashboard. Survival analysis ML predictions at 12h, 24h, 48h, and 72h — with an AI Tactical Copilot.</p>
+  <div class="hero-btns">
+    <a class="btn-red" href="https://huggingface.co/spaces/AYAHAlqassab/FireTriage" target="_blank">🔥 Launch Dashboard</a>
+    <a class="btn-ghost" href="https://github.com/ayah02/FireTriage" target="_blank">View on GitHub</a>
   </div>
-  <h1>Project<br /><span class="accent">IgnitionHorizon</span></h1>
-  <p>
-    Wildfire tactical triage dashboard. Real-time fire spread probability
-    predictions powered by a right-censored survival analysis ensemble —
-    deployed with an AI Tactical Copilot.
-  </p>
-  <div class="hero-actions">
-    <a class="btn btn-primary" href="https://huggingface.co/spaces/AYAHAlqassab/FireTriage" target="_blank">
-      🔥 Launch Dashboard
-    </a>
-    <a class="btn btn-secondary" href="https://github.com/ayah02/FireTriage" target="_blank">
-      ⬡ View on GitHub
-    </a>
-  </div>
-
-  <div class="risk-strip">
-    <div class="risk-pill">
-      <span class="dot" style="background:#FF4B4B"></span>
-      CRITICAL ≥ 70%
-    </div>
-    <div class="risk-pill">
-      <span class="dot" style="background:#FF9F1C"></span>
-      ELEVATED 30 – 69%
-    </div>
-    <div class="risk-pill">
-      <span class="dot" style="background:#2EC4B6"></span>
-      STABLE &lt; 30%
-    </div>
+  <div class="risks">
+    <div class="risk"><span class="risk-dot" style="background:#FF4B4B"></span> Critical ≥ 70%</div>
+    <div class="risk"><span class="risk-dot" style="background:#FF9F1C"></span> Elevated 30–69%</div>
+    <div class="risk"><span class="risk-dot" style="background:#2EC4B6"></span> Stable &lt; 30%</div>
   </div>
 </section>
 
-<!-- DEMO -->
-<section class="demo-section" id="demo">
-  <div class="container">
-    <div class="section-label">Live App</div>
-    <div class="section-title">The Dashboard</div>
-    <p class="section-sub" style="margin-bottom:2rem;">
-      Embedded live from Hugging Face Spaces. Full interactivity — ingest incidents, run predictions, chat with the AI Copilot.
-    </p>
-    <div class="demo-wrap">
-      <div class="demo-bar">
-        <span class="dot" style="background:#FF4B4B"></span>
-        <span class="dot" style="background:#FF9F1C"></span>
-        <span class="dot" style="background:#2EC4B6"></span>
-        <span class="url-bar">huggingface.co/spaces/AYAHAlqassab/FireTriage</span>
+<!-- EMBED -->
+<div class="embed-section">
+  <div class="embed-wrap">
+    <div class="section-heading">Live Dashboard</div>
+    <div class="section-sub">Embedded from Hugging Face Spaces — fully interactive.</div>
+    <div class="frame-shell">
+      <div class="frame-bar">
+        <div class="c" style="background:#FF4B4B"></div>
+        <div class="c" style="background:#FF9F1C"></div>
+        <div class="c" style="background:#2EC4B6"></div>
+        <div class="frame-url">huggingface.co/spaces/AYAHAlqassab/FireTriage</div>
       </div>
-      <div class="demo-frame-container">
-        <iframe
-          src="https://ayahalqassab-firetriage.hf.space"
-          allow="camera;microphone"
-          loading="lazy"
-          title="FireTriage Dashboard"
-        ></iframe>
+      <div class="frame-container">
+        <iframe src="https://ayahalqassab-firetriage.hf.space" loading="lazy" title="FireTriage Dashboard" allow="camera;microphone"></iframe>
       </div>
     </div>
   </div>
-</section>
+</div>
 
 <!-- FEATURES -->
-<section id="features">
-  <div class="container">
-    <div class="section-label">Capabilities</div>
-    <div class="section-title">Built for the EOC</div>
-    <p class="section-sub">
-      Every feature designed around the real operational needs of an Emergency Operations Center.
-    </p>
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(255,75,75,0.15)">📡</div>
-        <h3>Real-Time Incident Ingestion</h3>
-        <p>Log fire incidents with geolocation, fire distance, closing speed, and alignment vector via the sidebar form. Triage queue auto-sorts by 48h probability.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(255,159,28,0.15)">🗺️</div>
-        <h3>Geospatial Tactical Map</h3>
-        <p>Plotly Scattermapbox on carto-darkmatter tiles. Each incident is plotted with risk-color markers. Click any marker to drill into that incident's analytics.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(46,196,182,0.15)">⏱️</div>
-        <h3>Multi-Horizon Predictions</h3>
-        <p>Simultaneous 12h, 24h, 48h, and 72h fire spread probability curves with monotonicity enforcement ensuring P(t₁) ≤ P(t₂) for all t₁ &lt; t₂.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(255,75,75,0.15)">🤖</div>
-        <h3>AI Tactical Copilot</h3>
-        <p>Embedded LLM chat with full incident context. Groq LLaMA-3.3-70b primary → OpenRouter fallback → offline rule-based engine. Wildfire-scoped responses only.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(255,159,28,0.15)">📊</div>
-        <h3>Gauge + Probability Cards</h3>
-        <p>48h Plotly gauge dial with color-coded risk zones plus individual probability cards for each forecast horizon with percentage and classification badge.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon" style="background:rgba(46,196,182,0.15)">⚡</div>
-        <h3>Live Feed Simulation</h3>
-        <p>Activate real-time feed mode to simulate incoming incident updates. Watch probabilities and triage rankings update dynamically as conditions evolve.</p>
-      </div>
+<section class="features-section center">
+  <div class="max-w">
+    <div class="section-heading">What It Does</div>
+    <div class="section-sub">Everything an Emergency Operations Center needs in one screen.</div>
+  </div>
+  <div class="features-grid">
+    <div class="feat">
+      <div class="feat-icon">📡</div>
+      <h3>Incident Ingestion</h3>
+      <p>Log fires with location, distance, speed, and wind alignment. Queue auto-sorts by 48h probability.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🗺️</div>
+      <h3>Tactical Map</h3>
+      <p>Plotly Scattermapbox on dark tiles. Risk-colored markers per incident.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">📊</div>
+      <h3>Multi-Horizon Predictions</h3>
+      <p>12h · 24h · 48h · 72h spread probabilities with monotonicity enforcement.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🤖</div>
+      <h3>AI Copilot</h3>
+      <p>Groq LLaMA-3.3-70b with full incident context. Falls back to OpenRouter then offline engine.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">⚡</div>
+      <h3>Live Simulation</h3>
+      <p>Real-time feed mode updates incident data and recalculates risk rankings dynamically.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🎚️</div>
+      <h3>Calibrated ML</h3>
+      <p>Temperature Scaling (12h) and Isotonic Regression (24/48/72h) from the V31 ensemble.</p>
     </div>
   </div>
 </section>
 
-<!-- PIPELINE -->
-<section class="pipeline-section" id="pipeline">
-  <div class="container">
-    <div class="section-label">ML Architecture</div>
-    <div class="section-title">V31 Survival Analysis Pipeline</div>
-    <p class="section-sub">
-      Implements the WiDS Global Datathon 2026 right-censored survival analysis framework with calibrated multi-horizon predictions.
-    </p>
-
-    <div class="pipeline-steps">
-      <div class="pipeline-step">
-        <div class="step-num">Step 1</div>
-        <h4>Feature Engineering</h4>
-        <p>log distance · danger index · ETA · speed-alignment product</p>
-      </div>
-      <div class="pipeline-step">
-        <div class="step-num">Step 2</div>
-        <h4>Ensemble Logit</h4>
-        <p>XGBoost + LightGBM + Ridge linear combination</p>
-      </div>
-      <div class="pipeline-step">
-        <div class="step-num">Step 3</div>
-        <h4>Calibration</h4>
-        <p>Temperature Scaling T=1.30 (12h) · Isotonic Regression (24/48/72h)</p>
-      </div>
-      <div class="pipeline-step">
-        <div class="step-num">Step 4</div>
-        <h4>Monotonicity</h4>
-        <p>Survival constraint enforcement across all four horizons</p>
-      </div>
-    </div>
-
-    <div class="horizons">
-      <p class="section-sub" style="margin-top:2.5rem; margin-bottom:0;">Prediction horizons output per incident:</p>
-      <div class="horizons-grid">
-        <div class="horizon-card">
-          <div class="label">Short-term</div>
-          <div class="value" style="color:var(--stable)">12h</div>
-          <div class="desc">Temperature Scaled</div>
-        </div>
-        <div class="horizon-card">
-          <div class="label">Near-term</div>
-          <div class="value" style="color:var(--elevated)">24h</div>
-          <div class="desc">Isotonic Regression</div>
-        </div>
-        <div class="horizon-card">
-          <div class="label">Primary triage</div>
-          <div class="value" style="color:var(--elevated)">48h</div>
-          <div class="desc">Isotonic Regression</div>
-        </div>
-        <div class="horizon-card">
-          <div class="label">Strategic</div>
-          <div class="value" style="color:var(--critical)">72h</div>
-          <div class="desc">Isotonic Regression</div>
-        </div>
-      </div>
-    </div>
+<!-- LINKS -->
+<div class="links-section center">
+  <div class="section-heading">Access the Project</div>
+  <div class="section-sub">App, source code, and dev branch — all in one place.</div>
+  <div class="links-grid">
+    <a class="link-card app" href="https://huggingface.co/spaces/AYAHAlqassab/FireTriage" target="_blank">
+      <div class="lc-icon">🤗</div>
+      <div class="lc-title">Live App</div>
+      <div class="lc-url">huggingface.co/spaces/AYAHAlqassab/FireTriage</div>
+      <div class="lc-desc">Full dashboard. No login needed.</div>
+      <div class="lc-go">Open →</div>
+    </a>
+    <a class="link-card gh" href="https://github.com/ayah02/FireTriage" target="_blank">
+      <div class="lc-icon">⬡</div>
+      <div class="lc-title">GitHub Repo</div>
+      <div class="lc-url">github.com/ayah02/FireTriage</div>
+      <div class="lc-desc">Source code, ML pipeline, CI/CD workflow.</div>
+      <div class="lc-go">View →</div>
+    </a>
+    <a class="link-card" href="https://github.com/ayah02/FireTriage/tree/claude/streamlit-app-setup-prYYN" target="_blank">
+      <div class="lc-icon">🌿</div>
+      <div class="lc-title">Dev Branch</div>
+      <div class="lc-url">claude/streamlit-app-setup-prYYN</div>
+      <div class="lc-desc">Auto-deploys to HF Spaces on every push.</div>
+      <div class="lc-go">Browse →</div>
+    </a>
   </div>
-</section>
+</div>
 
-<!-- AI COPILOT -->
-<section id="copilot">
-  <div class="container">
-    <div class="section-label">AI Integration</div>
-    <div class="section-title">Tactical Copilot</div>
-    <p class="section-sub">
-      Context-aware LLM assistant scoped strictly to wildfire operations. Three-tier fallback ensures 100% uptime — even offline.
-    </p>
-
-    <div class="chat-preview">
-      <div class="chat-topbar">
-        <span class="ai-dot"></span>
-        IgnitionHorizon AI Copilot · Groq LLaMA-3.3-70b
-        <span style="margin-left:auto; font-size:0.72rem; color:var(--stable); font-weight:400">● Online</span>
-      </div>
-      <div class="chat-messages">
-        <div class="msg ai">
-          <div class="msg-avatar">AI</div>
-          <div class="msg-bubble">
-            IgnitionHorizon Copilot online. Active incident: <strong>Cascade Ridge Fire</strong> — CRITICAL, 48h probability 84%. How can I assist?
-          </div>
-        </div>
-        <div class="msg user">
-          <div class="msg-avatar">👤</div>
-          <div class="msg-bubble">What's the evacuation priority for Cascade Ridge?</div>
-        </div>
-        <div class="msg ai">
-          <div class="msg-avatar">AI</div>
-          <div class="msg-bubble">
-            <strong>CRITICAL — Immediate Evacuation Recommended.</strong><br /><br />
-            Cascade Ridge Fire shows 84% spread probability within 48h with closing speed 4,800 m/h and alignment 0.87 — both critically elevated. Recommend:<br /><br />
-            1. Issue mandatory evacuation order for Zone A immediately<br />
-            2. Pre-position strike teams at northern perimeter (3.2 km buffer)<br />
-            3. Request air tanker support within next 2 hours<br />
-            4. Reassess at 12h mark — current P(12h) = 71%
-          </div>
-        </div>
-        <div class="msg user">
-          <div class="msg-avatar">👤</div>
-          <div class="msg-bubble">Compare all active incidents by risk</div>
-        </div>
-        <div class="msg ai">
-          <div class="msg-avatar">AI</div>
-          <div class="msg-bubble">
-            🔴 <strong>Cascade Ridge</strong> — CRITICAL 84% · Close fast-moving fire, immediate priority<br />
-            🟠 <strong>Sycamore Summit</strong> — ELEVATED 52% · Monitor, pre-position resources<br />
-            🟢 <strong>Kern Valley</strong> — STABLE 18% · Routine monitoring only
-          </div>
-        </div>
-      </div>
-      <div class="chat-input-bar">
-        <input type="text" placeholder="Ask about evacuation, resources, ETAs, probabilities…" readonly />
-        <button class="chat-send">Send</button>
-      </div>
-    </div>
-
-    <div class="stack-grid" style="margin-top:2rem;">
-      <span class="stack-tag">Groq LLaMA-3.3-70b (primary)</span>
-      <span class="stack-tag">OpenRouter (fallback)</span>
-      <span class="stack-tag">Rule-based engine (offline)</span>
-      <span class="stack-tag">st.chat_message</span>
-      <span class="stack-tag">st.chat_input</span>
-      <span class="stack-tag">Session state history</span>
-    </div>
-  </div>
-</section>
-
-<!-- TECH STACK -->
-<section style="background:var(--bg2); border-top:1px solid var(--border)">
-  <div class="container">
-    <div class="section-label">Tech Stack</div>
-    <div class="section-title">Built With</div>
-    <div class="stack-grid">
-      <span class="stack-tag">Python 3.11</span>
-      <span class="stack-tag">Streamlit ≥ 1.32</span>
-      <span class="stack-tag">Plotly ≥ 5.20</span>
-      <span class="stack-tag">NumPy</span>
-      <span class="stack-tag">Pandas</span>
-      <span class="stack-tag">scikit-learn</span>
-      <span class="stack-tag">SciPy</span>
-      <span class="stack-tag">requests</span>
-      <span class="stack-tag">Groq API</span>
-      <span class="stack-tag">OpenRouter API</span>
-      <span class="stack-tag">carto-darkmatter tiles</span>
-      <span class="stack-tag">GitHub Actions CI/CD</span>
-      <span class="stack-tag">Hugging Face Spaces</span>
-    </div>
-  </div>
-</section>
-
-<!-- LAUNCH LINKS -->
-<section id="launch">
-  <div class="container">
-    <div class="section-label">Deploy</div>
-    <div class="section-title">Access the Project</div>
-    <p class="section-sub">
-      The app is live on Hugging Face Spaces. Source code is on GitHub. CI/CD auto-deploys on every push.
-    </p>
-    <div class="links-grid">
-      <a class="link-card hf" href="https://huggingface.co/spaces/AYAHAlqassab/FireTriage" target="_blank">
-        <div class="lc-icon">🤗</div>
-        <div class="lc-title">Live App — HF Spaces</div>
-        <div class="lc-url">huggingface.co/spaces/AYAHAlqassab/FireTriage</div>
-        <div class="lc-desc">Full Streamlit dashboard, live predictions, AI Copilot. No login required.</div>
-        <div class="lc-arrow">Open app →</div>
-      </a>
-      <a class="link-card gh" href="https://github.com/ayah02/FireTriage" target="_blank">
-        <div class="lc-icon">⬡</div>
-        <div class="lc-title">Source Code — GitHub</div>
-        <div class="lc-url">github.com/ayah02/FireTriage</div>
-        <div class="lc-desc">Full source, ML pipeline, workflow automation, secrets template.</div>
-        <div class="lc-arrow">View repo →</div>
-      </a>
-      <a class="link-card" href="https://github.com/ayah02/FireTriage/tree/claude/streamlit-app-setup-prYYN" target="_blank" style="border-color:var(--border)">
-        <div class="lc-icon">🌿</div>
-        <div class="lc-title">Development Branch</div>
-        <div class="lc-url">claude/streamlit-app-setup-prYYN</div>
-        <div class="lc-desc">Active development branch. Pushes here trigger automatic HF Spaces deploy.</div>
-        <div class="lc-arrow">View branch →</div>
-      </a>
-    </div>
-  </div>
-</section>
-
-<!-- FOOTER -->
 <footer>
-  <p>
-    <strong>Project IgnitionHorizon</strong> · FireTriage Dashboard ·
-    WiDS Global Datathon 2026 · Built by
-    <a href="https://huggingface.co/AYAHAlqassab" target="_blank">AYAHAlqassab</a>
-  </p>
-  <p style="margin-top:0.5rem">
-    <a href="https://huggingface.co/spaces/AYAHAlqassab/FireTriage" target="_blank">Live App</a> ·
-    <a href="https://github.com/ayah02/FireTriage" target="_blank">GitHub</a>
-  </p>
+  <strong style="color:#555">Project IgnitionHorizon</strong> · FireTriage ·
+  Built by <a href="https://huggingface.co/AYAHAlqassab" target="_blank" style="color:#555">AYAHAlqassab</a>
 </footer>
 
 </body>
