@@ -13,46 +13,57 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create HF Space if needed
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          curl -s -X POST "https://huggingface.co/api/repos/create" \
-            -H "Authorization: Bearer $HF_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{"type":"space","name":"FireTriage","sdk":"streamlit","private":false}' || true
-          sleep 8
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-      - name: Set HF Space secrets
+      - name: Install huggingface_hub
+        run: pip install huggingface_hub
+
+      - name: Deploy to HF Spaces
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
-          curl -s -X POST "https://huggingface.co/api/spaces/AYAHAlqassab/FireTriage/secrets" \
-            -H "Authorization: Bearer $HF_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"key\":\"GROQ_API_KEY\",\"value\":\"$GROQ_API_KEY\"}" || true
+          python3 << 'EOF'
+          import os
+          from huggingface_hub import HfApi
 
-          curl -s -X POST "https://huggingface.co/api/spaces/AYAHAlqassab/FireTriage/secrets" \
-            -H "Authorization: Bearer $HF_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"key\":\"OPENROUTER_API_KEY\",\"value\":\"$OPENROUTER_API_KEY\"}" || true
+          token = os.environ["HF_TOKEN"]
+          api = HfApi(token=token)
 
-      - name: Push app to HF Spaces
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          git config --global user.email "deploy-bot@firetriage.app"
-          git config --global user.name "FireTriage Deploy Bot"
+          # Create space (no-op if already exists)
+          api.create_repo(
+              repo_id="AYAHAlqassab/FireTriage",
+              repo_type="space",
+              space_sdk="streamlit",
+              private=False,
+              exist_ok=True,
+          )
+          print("Space ready.")
 
-          # Build a clean deployment directory
-          mkdir deploy
-          cp app.py deploy/
-          cp requirements.txt deploy/
+          # Set secrets
+          for key, env in [("GROQ_API_KEY", "GROQ_API_KEY"), ("OPENROUTER_API_KEY", "OPENROUTER_API_KEY")]:
+              val = os.environ.get(env, "")
+              if val:
+                  api.add_space_secret("AYAHAlqassab/FireTriage", key, val)
+                  print(f"Secret {key} set.")
 
-          cat > deploy/README.md << 'EOF'
----
+          # Upload files
+          for fname in ["app.py", "requirements.txt"]:
+              api.upload_file(
+                  path_or_fileobj=fname,
+                  path_in_repo=fname,
+                  repo_id="AYAHAlqassab/FireTriage",
+                  repo_type="space",
+                  commit_message=f"deploy: update {fname}",
+              )
+              print(f"Uploaded {fname}.")
+
+          # Upload README with HF metadata
+          readme = """---
 title: FireTriage — Project IgnitionHorizon
 emoji: 🔥
 colorFrom: red
@@ -65,22 +76,20 @@ license: mit
 short_description: Wildfire tactical triage dashboard with AI copilot
 ---
 
-# 🔥 Project IgnitionHorizon — FireTriage Dashboard
-
-Wildfire tactical triage dashboard implementing the WiDS Global Datathon 2026
-right-censored survival analysis framework.
-
-**Features**
-- 12h / 24h / 48h / 72h fire spread probability predictions
-- AI Tactical Copilot powered by Groq LLaMA-3.3-70b
-- Interactive geospatial incident map (carto-darkmatter)
-- Dark EOC-style command interface
-EOF
-
-          # Init fresh repo and force-push to HF Space
-          cd deploy
-          git init
-          git add -A
-          git commit -m "deploy: FireTriage wildfire triage dashboard"
-          git remote add hf https://AYAHAlqassab:$HF_TOKEN@huggingface.co/spaces/AYAHAlqassab/FireTriage
-          git push hf main --force
+# FireTriage — Project IgnitionHorizon
+Wildfire tactical triage dashboard with survival analysis ML + AI Copilot.
+"""
+          import tempfile, pathlib
+          with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
+              f.write(readme)
+              tmp = f.name
+          api.upload_file(
+              path_or_fileobj=tmp,
+              path_in_repo="README.md",
+              repo_id="AYAHAlqassab/FireTriage",
+              repo_type="space",
+              commit_message="deploy: update README",
+          )
+          print("Uploaded README.md.")
+          print("Deployment complete: https://huggingface.co/spaces/AYAHAlqassab/FireTriage")
+          EOF
