@@ -1,0 +1,84 @@
+name: Deploy to Hugging Face Spaces
+
+on:
+  push:
+    branches:
+      - claude/streamlit-app-setup-prYYN
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push to HF Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          git config --global user.email "deploy-bot@firetriage.app"
+          git config --global user.name "FireTriage Deploy Bot"
+
+          # Create Space via API if it doesn't exist yet
+          curl -s -X POST "https://huggingface.co/api/repos/create" \
+            -H "Authorization: Bearer $HF_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"type":"space","name":"FireTriage","sdk":"streamlit","private":false}' || true
+
+          sleep 5
+
+          # Clone the Space repo
+          git clone https://AYAHAlqassab:$HF_TOKEN@huggingface.co/spaces/AYAHAlqassab/FireTriage hf_space
+
+          # Write HF Space metadata README
+          cat > hf_space/README.md << 'EOF'
+---
+title: FireTriage — Project IgnitionHorizon
+emoji: 🔥
+colorFrom: red
+colorTo: orange
+sdk: streamlit
+sdk_version: 1.41.0
+app_file: app.py
+pinned: true
+license: mit
+short_description: Wildfire tactical triage dashboard with AI copilot
+---
+
+# 🔥 Project IgnitionHorizon — FireTriage Dashboard
+
+A wildfire tactical triage dashboard implementing the WiDS Global Datathon 2026 right-censored survival analysis framework.
+
+**Features:**
+- Real-time fire spread probability predictions (12h / 24h / 48h / 72h)
+- AI Tactical Copilot powered by Groq LLaMA-3.3-70b
+- Interactive geospatial incident map
+- Dark EOC-style command interface
+EOF
+
+          # Copy app files
+          cp app.py hf_space/
+          cp requirements.txt hf_space/
+
+          # Set HF Space secrets via API
+          curl -s -X POST "https://huggingface.co/api/spaces/AYAHAlqassab/FireTriage/secrets" \
+            -H "Authorization: Bearer $HF_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"key\":\"GROQ_API_KEY\",\"value\":\"$GROQ_API_KEY\"}" || true
+
+          curl -s -X POST "https://huggingface.co/api/spaces/AYAHAlqassab/FireTriage/secrets" \
+            -H "Authorization: Bearer $HF_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"key\":\"OPENROUTER_API_KEY\",\"value\":\"$OPENROUTER_API_KEY\"}" || true
+
+          # Commit and push to HF Spaces
+          cd hf_space
+          git add -A
+          git diff --staged --quiet || git commit -m "deploy: FireTriage wildfire triage dashboard"
+          git push https://AYAHAlqassab:$HF_TOKEN@huggingface.co/spaces/AYAHAlqassab/FireTriage main
