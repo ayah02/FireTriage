@@ -19,7 +19,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install huggingface_hub
-        run: pip install huggingface_hub
+        run: pip install huggingface_hub requests
 
       - name: Deploy to HF Spaces
         env:
@@ -27,42 +27,60 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
-          python3 << 'EOF'
-          import os
-          from huggingface_hub import HfApi
+          python3 - << 'PYEOF'
+          import os, sys, traceback
+          token = os.environ.get("HF_TOKEN", "")
+          print(f"Token present: {bool(token)}, length: {len(token)}, prefix: {token[:8] if token else 'EMPTY'}")
 
-          token = os.environ["HF_TOKEN"]
-          api = HfApi(token=token)
+          try:
+              from huggingface_hub import HfApi, whoami
+              info = whoami(token=token)
+              print(f"Authenticated as: {info['name']}")
+          except Exception as e:
+              print(f"AUTH FAILED: {e}")
+              sys.exit(1)
 
-          # Create space (no-op if already exists)
-          api.create_repo(
-              repo_id="AYAHAlqassab/FireTriage",
-              repo_type="space",
-              space_sdk="streamlit",
-              private=False,
-              exist_ok=True,
-          )
-          print("Space ready.")
-
-          # Set secrets
-          for key, env in [("GROQ_API_KEY", "GROQ_API_KEY"), ("OPENROUTER_API_KEY", "OPENROUTER_API_KEY")]:
-              val = os.environ.get(env, "")
-              if val:
-                  api.add_space_secret("AYAHAlqassab/FireTriage", key, val)
-                  print(f"Secret {key} set.")
-
-          # Upload files
-          for fname in ["app.py", "requirements.txt"]:
-              api.upload_file(
-                  path_or_fileobj=fname,
-                  path_in_repo=fname,
+          try:
+              api = HfApi(token=token)
+              url = api.create_repo(
                   repo_id="AYAHAlqassab/FireTriage",
                   repo_type="space",
-                  commit_message=f"deploy: update {fname}",
+                  space_sdk="streamlit",
+                  private=False,
+                  exist_ok=True,
               )
-              print(f"Uploaded {fname}.")
+              print(f"Space created/confirmed: {url}")
+          except Exception as e:
+              print(f"CREATE REPO FAILED: {e}")
+              traceback.print_exc()
+              sys.exit(1)
 
-          # Upload README with HF metadata
+          try:
+              groq_key = os.environ.get("GROQ_API_KEY", "")
+              or_key   = os.environ.get("OPENROUTER_API_KEY", "")
+              if groq_key:
+                  api.add_space_secret("AYAHAlqassab/FireTriage", "GROQ_API_KEY", groq_key)
+                  print("GROQ_API_KEY secret set.")
+              if or_key:
+                  api.add_space_secret("AYAHAlqassab/FireTriage", "OPENROUTER_API_KEY", or_key)
+                  print("OPENROUTER_API_KEY secret set.")
+          except Exception as e:
+              print(f"SECRETS WARNING: {e}")
+
+          for fname in ["app.py", "requirements.txt"]:
+              try:
+                  sha = api.upload_file(
+                      path_or_fileobj=fname,
+                      path_in_repo=fname,
+                      repo_id="AYAHAlqassab/FireTriage",
+                      repo_type="space",
+                  )
+                  print(f"Uploaded {fname}: {sha}")
+              except Exception as e:
+                  print(f"UPLOAD {fname} FAILED: {e}")
+                  traceback.print_exc()
+                  sys.exit(1)
+
           readme = """---
 title: FireTriage — Project IgnitionHorizon
 emoji: 🔥
@@ -75,21 +93,22 @@ pinned: true
 license: mit
 short_description: Wildfire tactical triage dashboard with AI copilot
 ---
-
-# FireTriage — Project IgnitionHorizon
-Wildfire tactical triage dashboard with survival analysis ML + AI Copilot.
+# FireTriage
 """
-          import tempfile, pathlib
+          import tempfile
           with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
-              f.write(readme)
-              tmp = f.name
-          api.upload_file(
-              path_or_fileobj=tmp,
-              path_in_repo="README.md",
-              repo_id="AYAHAlqassab/FireTriage",
-              repo_type="space",
-              commit_message="deploy: update README",
-          )
-          print("Uploaded README.md.")
-          print("Deployment complete: https://huggingface.co/spaces/AYAHAlqassab/FireTriage")
-          EOF
+              f.write(readme); tmp = f.name
+          try:
+              sha = api.upload_file(
+                  path_or_fileobj=tmp,
+                  path_in_repo="README.md",
+                  repo_id="AYAHAlqassab/FireTriage",
+                  repo_type="space",
+              )
+              print(f"Uploaded README.md: {sha}")
+          except Exception as e:
+              print(f"UPLOAD README FAILED: {e}")
+              sys.exit(1)
+
+          print("DEPLOYMENT COMPLETE: https://huggingface.co/spaces/AYAHAlqassab/FireTriage")
+          PYEOF
