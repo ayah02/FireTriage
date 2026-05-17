@@ -26,4 +26,15 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-        run: python deploy.py
+        run: python deploy.py 2>&1 | tee deploy_log.txt; exit ${PIPESTATUS[0]}
+
+      - name: Push deploy log back to repo
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add deploy_log.txt
+          git diff --staged --quiet || git commit -m "ci: deploy log [skip ci]"
+          git push "https://x-access-token:${GH_TOKEN}@github.com/ayah02/FireTriage.git" HEAD:claude/streamlit-app-setup-prYYN
