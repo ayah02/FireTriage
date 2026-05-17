@@ -12,32 +12,46 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          lfs: true
 
-      - name: Push to HF Spaces
+      - name: Create HF Space if needed
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          curl -s -X POST "https://huggingface.co/api/repos/create" \
+            -H "Authorization: Bearer $HF_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"type":"space","name":"FireTriage","sdk":"streamlit","private":false}' || true
+          sleep 8
+
+      - name: Set HF Space secrets
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
+          curl -s -X POST "https://huggingface.co/api/spaces/AYAHAlqassab/FireTriage/secrets" \
+            -H "Authorization: Bearer $HF_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"key\":\"GROQ_API_KEY\",\"value\":\"$GROQ_API_KEY\"}" || true
+
+          curl -s -X POST "https://huggingface.co/api/spaces/AYAHAlqassab/FireTriage/secrets" \
+            -H "Authorization: Bearer $HF_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"key\":\"OPENROUTER_API_KEY\",\"value\":\"$OPENROUTER_API_KEY\"}" || true
+
+      - name: Push app to HF Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
           git config --global user.email "deploy-bot@firetriage.app"
           git config --global user.name "FireTriage Deploy Bot"
 
-          # Create Space via API if it doesn't exist yet
-          curl -s -X POST "https://huggingface.co/api/repos/create" \
-            -H "Authorization: Bearer $HF_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d '{"type":"space","name":"FireTriage","sdk":"streamlit","private":false}' || true
+          # Build a clean deployment directory
+          mkdir deploy
+          cp app.py deploy/
+          cp requirements.txt deploy/
 
-          sleep 5
-
-          # Clone the Space repo
-          git clone https://AYAHAlqassab:$HF_TOKEN@huggingface.co/spaces/AYAHAlqassab/FireTriage hf_space
-
-          # Write HF Space metadata README
-          cat > hf_space/README.md << 'EOF'
+          cat > deploy/README.md << 'EOF'
 ---
 title: FireTriage — Project IgnitionHorizon
 emoji: 🔥
@@ -53,32 +67,20 @@ short_description: Wildfire tactical triage dashboard with AI copilot
 
 # 🔥 Project IgnitionHorizon — FireTriage Dashboard
 
-A wildfire tactical triage dashboard implementing the WiDS Global Datathon 2026 right-censored survival analysis framework.
+Wildfire tactical triage dashboard implementing the WiDS Global Datathon 2026
+right-censored survival analysis framework.
 
-**Features:**
-- Real-time fire spread probability predictions (12h / 24h / 48h / 72h)
+**Features**
+- 12h / 24h / 48h / 72h fire spread probability predictions
 - AI Tactical Copilot powered by Groq LLaMA-3.3-70b
-- Interactive geospatial incident map
+- Interactive geospatial incident map (carto-darkmatter)
 - Dark EOC-style command interface
 EOF
 
-          # Copy app files
-          cp app.py hf_space/
-          cp requirements.txt hf_space/
-
-          # Set HF Space secrets via API
-          curl -s -X POST "https://huggingface.co/api/spaces/AYAHAlqassab/FireTriage/secrets" \
-            -H "Authorization: Bearer $HF_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"key\":\"GROQ_API_KEY\",\"value\":\"$GROQ_API_KEY\"}" || true
-
-          curl -s -X POST "https://huggingface.co/api/spaces/AYAHAlqassab/FireTriage/secrets" \
-            -H "Authorization: Bearer $HF_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"key\":\"OPENROUTER_API_KEY\",\"value\":\"$OPENROUTER_API_KEY\"}" || true
-
-          # Commit and push to HF Spaces
-          cd hf_space
+          # Init fresh repo and force-push to HF Space
+          cd deploy
+          git init
           git add -A
-          git diff --staged --quiet || git commit -m "deploy: FireTriage wildfire triage dashboard"
-          git push https://AYAHAlqassab:$HF_TOKEN@huggingface.co/spaces/AYAHAlqassab/FireTriage main
+          git commit -m "deploy: FireTriage wildfire triage dashboard"
+          git remote add hf https://AYAHAlqassab:$HF_TOKEN@huggingface.co/spaces/AYAHAlqassab/FireTriage
+          git push hf main --force
