@@ -23,7 +23,9 @@ try:
     )
     print(f"Space ready: {url}")
 except Exception as e:
-    print(f"CREATE REPO FAILED: {e}")
+    print(f"CREATE REPO FAILED: {type(e).__name__}: {e}")
+    if hasattr(e, 'response') and e.response is not None:
+        print(f"HF response body: {e.response.text}")
     traceback.print_exc()
     sys.exit(1)
 
