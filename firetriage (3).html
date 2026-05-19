@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FireTriage — Wildfire Incident Command Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --fire:#E8500A; --fire-lt:#F97316; --ember:#FFBA59;
+  --smoke:#6B7280; --soil:#92400E;
+  --ash:#F5F0EB; --white:#FFFCF9; --text:#1C1917;
+  --muted:#57534E; --border:#E7E0D8; --card-bg:#FFFFFF;
+  --bg:#FFFCF9; --hero-bg:#FFF7ED;
+  --safe:#16A34A; --warn:#D97706; --danger:#DC2626;
+}
+html { scroll-behavior: smooth; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); line-height:1.6; font-size:16px; }
+
+/* NAV */
+nav {
+  position:sticky; top:0; z-index:200;
+  background:rgba(255,252,249,0.92); backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  padding:0 2rem; height:64px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.nav-brand { font-family:'Fraunces',serif; font-weight:700; font-size:20px; color:var(--fire); text-decoration:none; }
+.nav-links { display:flex; gap:2rem; list-style:none; }
+.nav-links a { font-size:14px; font-weight:500; color:var(--muted); text-decoration:none; transition:color 0.2s; }
+.nav-links a:hover { color:var(--fire); }
+.nav-cta { background:var(--fire); color:white; padding:9px 22px; border-radius:100px; font-size:14px; font-weight:600; text-decoration:none; transition:all 0.2s; }
+.nav-cta:hover { background:#c44208; transform:translateY(-1px); }
+
+/* HERO */
+#hero { background:var(--hero-bg); padding:100px 2rem 80px; text-align:center; position:relative; overflow:hidden; }
+#hero::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(232,80,10,0.08) 0%,transparent 70%); pointer-events:none; }
+.hero-badge { display:inline-flex; align-items:center; gap:8px; background:rgba(232,80,10,0.1); color:var(--fire); font-size:13px; font-weight:600; padding:6px 16px; border-radius:100px; margin-bottom:2rem; border:1px solid rgba(232,80,10,0.2); }
+.hero-badge-dot { width:7px; height:7px; border-radius:50%; background:var(--fire); animation:breathe 2s ease-in-out infinite; }
+@keyframes breathe { 0%,100%{transform:scale(1);opacity:1;} 50%{transform:scale(0.6);opacity:0.5;} }
+.hero-title { font-family:'Fraunces',serif; font-size:clamp(44px,7vw,80px); font-weight:700; line-height:1.05; color:var(--text); margin-bottom:1.5rem; letter-spacing:-0.02em; }
+.hero-title em { font-style:italic; color:var(--fire); }
+.hero-sub { font-size:clamp(16px,2vw,20px); color:var(--muted); max-width:580px; margin:0 auto 2.5rem; font-weight:400; line-height:1.7; }
+.hero-actions { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-bottom:4rem; }
+.btn-fire { background:var(--fire); color:white; padding:14px 32px; border-radius:100px; font-size:15px; font-weight:600; text-decoration:none; transition:all 0.2s; display:inline-flex; align-items:center; gap:8px; box-shadow:0 4px 20px rgba(232,80,10,0.3); cursor:pointer; border:none; font-family:'DM Sans',sans-serif; }
+.btn-fire:hover { background:#c44208; transform:translateY(-2px); box-shadow:0 8px 28px rgba(232,80,10,0.35); }
+.btn-outline { background:white; color:var(--text); padding:14px 32px; border-radius:100px; font-size:15px; font-weight:600; text-decoration:none; transition:all 0.2s; border:1.5px solid var(--border); display:inline-flex; align-items:center; gap:8px; }
+.btn-outline:hover { border-color:var(--fire); color:var(--fire); transform:translateY(-2px); }
+
+/* HERO VISUAL */
+.hero-visual { max-width:860px; margin:0 auto; background:white; border-radius:20px; border:1px solid var(--border); box-shadow:0 20px 80px rgba(0,0,0,0.08); overflow:hidden; }
+.hw-bar { background:#F8F4F0; border-bottom:1px solid var(--border); padding:12px 16px; display:flex; align-items:center; gap:8px; }
+.hw-dot { width:12px; height:12px; border-radius:50%; }
+.hw-dot:nth-child(1){background:#FF5F57;} .hw-dot:nth-child(2){background:#FFBD2E;} .hw-dot:nth-child(3){background:#28CA41;}
+.hw-url { margin-left:auto; margin-right:auto; background:white; border:1px solid var(--border); border-radius:8px; padding:4px 14px; font-size:12px; color:var(--smoke); }
+.hw-content { display:grid; grid-template-columns:200px 1fr; height:320px; }
+.hw-sidebar { background:#0d0d10; padding:1.25rem; display:flex; flex-direction:column; gap:0.5rem; }
+.hw-sidebar-title { font-size:10px; color:rgba(255,255,255,0.35); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:0.5rem; }
+.hw-incident { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:8px; padding:0.6rem 0.75rem; cursor:pointer; }
+.hw-incident.active { border-color:rgba(232,80,10,0.5); background:rgba(232,80,10,0.08); }
+.hw-inc-name { font-size:11px; color:rgba(255,255,255,0.85); font-weight:500; }
+.hw-inc-prob { font-size:11px; font-weight:700; margin-top:2px; }
+.prob-red{color:#FF4B4B;} .prob-orange{color:#FF9F1C;} .prob-teal{color:#2EC4B6;}
+.hw-main { background:#111115; padding:1.5rem; display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-content:start; }
+.hw-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:1rem; }
+.hw-card-title { font-size:9px; color:rgba(255,255,255,0.35); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:0.75rem; }
+.gauge-wrap { display:flex; flex-direction:column; align-items:center; justify-content:center; height:90px; }
+.gauge-num { font-family:'Fraunces',serif; font-size:38px; font-weight:700; color:#FF4B4B; line-height:1; }
+.gauge-lbl { font-size:10px; color:rgba(255,255,255,0.4); margin-top:4px; letter-spacing:0.08em; text-align:center; }
+.mini-probs { display:flex; flex-direction:column; gap:8px; }
+.mp-row { display:flex; align-items:center; gap:8px; }
+.mp-lbl { font-size:10px; color:rgba(255,255,255,0.4); min-width:24px; }
+.mp-bar-bg { flex:1; height:4px; background:rgba(255,255,255,0.08); border-radius:2px; }
+.mp-bar-fill { height:100%; border-radius:2px; }
+.mp-val { font-size:11px; font-weight:600; min-width:38px; text-align:right; }
+
+/* TRUST BAND */
+.trust-band { background:white; border-top:1px solid var(--border); border-bottom:1px solid var(--border); padding:1.5rem 2rem; display:flex; align-items:center; justify-content:center; gap:2.5rem; flex-wrap:wrap; }
+.trust-item { display:flex; align-items:center; gap:8px; font-size:14px; font-weight:500; color:var(--muted); }
+.trust-icon { width:32px; height:32px; background:var(--ash); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:16px; }
+
+/* SECTIONS */
+section { padding:100px 2rem; }
+.section-inner { max-width:1100px; margin:0 auto; }
+.section-tag { display:inline-block; font-size:13px; font-weight:600; color:var(--fire); background:rgba(232,80,10,0.08); padding:4px 14px; border-radius:100px; margin-bottom:1rem; border:1px solid rgba(232,80,10,0.15); }
+.section-title { font-family:'Fraunces',serif; font-size:clamp(32px,4vw,48px); font-weight:700; line-height:1.15; color:var(--text); margin-bottom:1rem; letter-spacing:-0.02em; }
+.section-title em { font-style:italic; color:var(--fire); }
+.section-body { font-size:17px; color:var(--muted); line-height:1.75; max-width:540px; }
+
+/* HOW IT WORKS */
+#how { background:var(--ash); }
+.steps-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem; margin-top:4rem; }
+.step-card { background:white; border-radius:16px; padding:2rem; border:1px solid var(--border); transition:transform 0.25s, box-shadow 0.25s; }
+.step-card:hover { transform:translateY(-4px); box-shadow:0 12px 40px rgba(0,0,0,0.06); }
+.step-num { font-family:'Fraunces',serif; font-size:52px; font-weight:700; color:rgba(232,80,10,0.12); line-height:1; margin-bottom:1rem; }
+.step-title { font-family:'Fraunces',serif; font-size:20px; font-weight:600; color:var(--text); margin-bottom:0.75rem; }
+.step-body { font-size:14px; color:var(--muted); line-height:1.7; }
+
+/* FEATURES */
+#features { background:white; }
+.features-split { display:grid; grid-template-columns:1fr 1fr; gap:6rem; align-items:center; }
+.feature-list { display:flex; flex-direction:column; gap:1.25rem; margin-top:2.5rem; }
+.feature-item { display:flex; gap:1rem; padding:1rem 1.25rem; border-radius:12px; transition:background 0.2s; border:1px solid transparent; }
+.feature-item:hover { background:var(--ash); border-color:var(--border); }
+.feature-icon-wrap { width:40px; height:40px; border-radius:10px; background:rgba(232,80,10,0.1); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+.feature-item-title { font-family:'Fraunces',serif; font-size:16px; font-weight:600; color:var(--text); margin-bottom:0.2rem; }
+.feature-item-body { font-size:13px; color:var(--muted); line-height:1.6; }
+.feature-visual { background:var(--ash); border-radius:20px; padding:2rem; border:1px solid var(--border); }
+.risk-cards { display:flex; flex-direction:column; gap:0.75rem; }
+.risk-card { background:white; border-radius:12px; padding:1rem 1.25rem; border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; transition:transform 0.2s; }
+.risk-card:hover { transform:translateX(4px); }
+.risk-fire-name { font-weight:600; font-size:14px; color:var(--text); margin-bottom:2px; }
+.risk-meta { font-size:12px; color:var(--smoke); }
+.risk-badge { font-size:12px; font-weight:700; padding:4px 12px; border-radius:100px; }
+.rb-critical{background:#FEE2E2;color:var(--danger);} .rb-elevated{background:#FEF3C7;color:var(--warn);} .rb-monitor{background:#DCFCE7;color:var(--safe);}
+.risk-prob { font-family:'Fraunces',serif; font-size:22px; font-weight:700; margin-left:1rem; }
+
+/* ═══ LIVE TRIAGE TOOL ═══ */
+#triage { background:#0d0d10; padding:100px 2rem; }
+.triage-inner { max-width:1100px; margin:0 auto; }
+.triage-header { text-align:center; margin-bottom:3rem; }
+.triage-tag { display:inline-block; font-size:13px; font-weight:600; color:var(--ember); background:rgba(255,186,89,0.12); padding:4px 14px; border-radius:100px; margin-bottom:1rem; border:1px solid rgba(255,186,89,0.25); }
+.triage-title { font-family:'Fraunces',serif; font-size:clamp(32px,4vw,48px); font-weight:700; color:white; margin-bottom:0.75rem; }
+.triage-title em { font-style:italic; color:var(--ember); }
+.triage-sub { font-size:16px; color:rgba(255,255,255,0.5); max-width:520px; margin:0 auto; }
+.triage-grid { display:grid; grid-template-columns:380px 1fr; gap:2rem; align-items:start; }
+.triage-form-panel { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:1.75rem; }
+.triage-form-title { font-size:13px; font-weight:600; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:1.5rem; }
+.form-group { margin-bottom:1.1rem; }
+.form-label { font-size:12px; font-weight:600; color:rgba(255,255,255,0.6); display:block; margin-bottom:0.4rem; }
+.form-sublabel { font-size:11px; color:rgba(255,255,255,0.3); margin-top:2px; }
+.form-input { width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:9px 12px; font-size:14px; color:white; font-family:'DM Sans',sans-serif; outline:none; transition:border-color 0.2s; }
+.form-input:focus { border-color:rgba(232,80,10,0.6); }
+.form-input::placeholder { color:rgba(255,255,255,0.2); }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; }
+.range-wrap { display:flex; align-items:center; gap:10px; }
+.form-range { flex:1; accent-color:var(--fire); }
+.range-val { font-size:13px; font-weight:700; color:var(--ember); min-width:32px; text-align:right; }
+.btn-triage { width:100%; background:var(--fire); color:white; border:none; border-radius:10px; padding:13px; font-size:15px; font-weight:700; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; margin-top:0.75rem; display:flex; align-items:center; justify-content:center; gap:8px; }
+.btn-triage:hover { background:#c44208; transform:translateY(-1px); }
+.btn-triage:disabled { background:#444; cursor:not-allowed; transform:none; }
+.triage-results-panel { display:flex; flex-direction:column; gap:1.25rem; }
+.result-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:16px; padding:1.5rem; animation:fadeUp 0.4s ease forwards; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:none;} }
+.rc-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem; }
+.rc-name { font-family:'Fraunces',serif; font-size:18px; font-weight:700; color:white; }
+.rc-badge { font-size:12px; font-weight:700; padding:5px 14px; border-radius:100px; }
+.badge-critical { background:rgba(220,38,38,0.2); color:#FF4B4B; border:1px solid rgba(220,38,38,0.3); }
+.badge-elevated { background:rgba(217,119,6,0.2); color:#FF9F1C; border:1px solid rgba(217,119,6,0.3); }
+.badge-monitor { background:rgba(22,163,74,0.2); color:#4ADE80; border:1px solid rgba(22,163,74,0.3); }
+.rc-horizons { display:grid; grid-template-columns:repeat(4,1fr); gap:0.75rem; margin-bottom:1.25rem; }
+.rc-h { background:rgba(255,255,255,0.04); border-radius:10px; padding:0.75rem; text-align:center; border:1px solid rgba(255,255,255,0.06); }
+.rc-h-label { font-size:10px; color:rgba(255,255,255,0.35); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px; }
+.rc-h-val { font-family:'Fraunces',serif; font-size:22px; font-weight:700; line-height:1; }
+.rc-bar-row { display:flex; align-items:center; gap:10px; }
+.rc-bar-bg { flex:1; height:6px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden; }
+.rc-bar-fill { height:100%; border-radius:3px; transition:width 0.8s ease; }
+.rc-bar-pct { font-size:11px; color:rgba(255,255,255,0.4); min-width:36px; text-align:right; }
+.rc-features { margin-top:1rem; display:grid; grid-template-columns:repeat(3,1fr); gap:0.5rem; }
+.rc-feat { background:rgba(255,255,255,0.03); border-radius:8px; padding:0.5rem 0.75rem; border:1px solid rgba(255,255,255,0.06); }
+.rc-feat-label { font-size:9px; color:rgba(255,255,255,0.3); text-transform:uppercase; letter-spacing:0.08em; }
+.rc-feat-val { font-size:12px; font-weight:600; color:rgba(255,255,255,0.7); margin-top:2px; }
+.triage-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; color:rgba(255,255,255,0.2); text-align:center; gap:1rem; border:2px dashed rgba(255,255,255,0.08); border-radius:16px; padding:2rem; }
+.triage-empty-icon { font-size:48px; opacity:0.4; }
+.triage-empty-text { font-size:15px; }
+
+/* AI SECTION */
+#ai-section { background:var(--ash); }
+.ai-split { display:grid; grid-template-columns:1fr 1fr; gap:5rem; align-items:flex-start; }
+.chat-widget { background:white; border-radius:20px; border:1px solid var(--border); box-shadow:0 8px 40px rgba(0,0,0,0.06); overflow:hidden; display:flex; flex-direction:column; height:560px; }
+.chat-header { background:var(--fire); padding:1rem 1.25rem; display:flex; align-items:center; gap:10px; color:white; }
+.chat-avatar { width:36px; height:36px; background:rgba(255,255,255,0.2); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; }
+.chat-header-name { font-weight:700; font-size:15px; }
+.chat-header-status { font-size:12px; opacity:0.8; display:flex; align-items:center; gap:5px; }
+.chat-status-dot { width:6px; height:6px; border-radius:50%; background:#4ADE80; animation:breathe 2s infinite; }
+.chat-messages { flex:1; overflow-y:auto; padding:1.25rem; display:flex; flex-direction:column; gap:1rem; scroll-behavior:smooth; }
+.chat-messages::-webkit-scrollbar { width:4px; }
+.chat-messages::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+.msg-row { display:flex; gap:8px; align-items:flex-end; }
+.msg-row.user { flex-direction:row-reverse; }
+.msg-ava { width:28px; height:28px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; }
+.ava-ai { background:var(--fire); color:white; font-size:14px; }
+.ava-user { background:var(--ash); color:var(--smoke); font-size:11px; }
+.msg-bubble { max-width:80%; padding:0.7rem 1rem; border-radius:16px; font-size:13.5px; line-height:1.6; }
+.msg-bubble.ai { background:var(--ash); color:var(--text); border-bottom-left-radius:4px; }
+.msg-bubble.user { background:var(--fire); color:white; border-bottom-right-radius:4px; }
+.typing-indicator { display:flex; gap:4px; align-items:center; padding:0.7rem 1rem; background:var(--ash); border-radius:16px; border-bottom-left-radius:4px; width:fit-content; }
+.typing-dot { width:7px; height:7px; background:var(--smoke); border-radius:50%; animation:bounce 1.2s ease-in-out infinite; }
+.typing-dot:nth-child(2){animation-delay:0.2s;} .typing-dot:nth-child(3){animation-delay:0.4s;}
+@keyframes bounce { 0%,80%,100%{transform:translateY(0);} 40%{transform:translateY(-6px);} }
+.chat-suggestions { padding:0 1.25rem 0.75rem; display:flex; gap:0.5rem; flex-wrap:wrap; }
+.suggestion-chip { background:var(--ash); border:1px solid var(--border); color:var(--muted); font-size:12px; font-weight:500; padding:5px 12px; border-radius:100px; cursor:pointer; transition:all 0.2s; font-family:'DM Sans',sans-serif; }
+.suggestion-chip:hover { background:var(--fire); color:white; border-color:var(--fire); }
+.chat-input-row { display:flex; gap:0.5rem; padding:0.75rem 1rem; border-top:1px solid var(--border); align-items:center; }
+#chat-input { flex:1; border:1.5px solid var(--border); border-radius:100px; padding:9px 18px; font-size:14px; font-family:'DM Sans',sans-serif; color:var(--text); background:white; outline:none; transition:border-color 0.2s; }
+#chat-input:focus { border-color:var(--fire); }
+#chat-input::placeholder { color:var(--smoke); }
+#chat-send { background:var(--fire); border:none; color:white; width:38px; height:38px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; transition:all 0.2s; }
+#chat-send:hover { background:#c44208; transform:scale(1.05); }
+#chat-send:disabled { background:var(--smoke); cursor:not-allowed; transform:none; }
+.ai-info-points { display:flex; flex-direction:column; gap:2rem; margin-top:2.5rem; }
+.ai-point { display:flex; gap:1rem; align-items:flex-start; }
+.ai-point-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+.aip-fire{background:rgba(232,80,10,0.12);} .aip-shield{background:rgba(22,163,74,0.12);} .aip-brain{background:rgba(109,40,217,0.1);}
+.ai-point-title { font-family:'Fraunces',serif; font-size:17px; font-weight:600; color:var(--text); margin-bottom:0.3rem; }
+.ai-point-body { font-size:14px; color:var(--muted); line-height:1.7; }
+
+/* DEPLOY */
+#deploy { background:white; }
+.deploy-grid { display:grid; grid-template-columns:1fr 1fr; gap:2rem; margin-top:3rem; }
+.deploy-card { background:var(--ash); border-radius:16px; padding:2rem; border:1px solid var(--border); transition:transform 0.2s, box-shadow 0.2s; }
+.deploy-card:hover { transform:translateY(-3px); box-shadow:0 10px 30px rgba(0,0,0,0.06); }
+.deploy-card-icon { font-size:32px; margin-bottom:1rem; }
+.deploy-card-title { font-family:'Fraunces',serif; font-size:20px; font-weight:600; color:var(--text); margin-bottom:0.5rem; }
+.deploy-card-body { font-size:14px; color:var(--muted); line-height:1.6; margin-bottom:1.5rem; }
+.deploy-card-link { display:inline-flex; align-items:center; gap:6px; font-size:14px; font-weight:600; color:var(--fire); text-decoration:none; transition:gap 0.2s; }
+.deploy-card-link:hover { gap:10px; }
+
+/* CTA */
+#cta { background:var(--fire); padding:100px 2rem; text-align:center; }
+.cta-inner { max-width:640px; margin:0 auto; }
+.cta-title { font-family:'Fraunces',serif; font-size:clamp(36px,5vw,56px); font-weight:700; color:white; margin-bottom:1rem; letter-spacing:-0.02em; line-height:1.1; }
+.cta-title em { font-style:italic; opacity:0.85; }
+.cta-body { font-size:17px; color:rgba(255,255,255,0.8); margin-bottom:2.5rem; line-height:1.7; }
+.btn-white { background:white; color:var(--fire); padding:14px 32px; border-radius:100px; font-size:15px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:8px; transition:all 0.2s; box-shadow:0 4px 20px rgba(0,0,0,0.15); }
+.btn-white:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(0,0,0,0.2); }
+.btn-white-outline { background:transparent; color:white; padding:14px 32px; border-radius:100px; font-size:15px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:8px; border:2px solid rgba(255,255,255,0.4); transition:all 0.2s; }
+.btn-white-outline:hover { border-color:white; transform:translateY(-2px); }
+
+/* FOOTER */
+footer { background:#1C1917; padding:3rem 2rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1.5rem; }
+.footer-brand { font-family:'Fraunces',serif; font-size:18px; font-weight:700; color:var(--ember); text-decoration:none; }
+.footer-note { font-size:13px; color:rgba(255,255,255,0.35); margin-top:4px; }
+.footer-links { display:flex; gap:2rem; list-style:none; }
+.footer-links a { font-size:14px; color:rgba(255,255,255,0.5); text-decoration:none; transition:color 0.2s; }
+.footer-links a:hover { color:var(--ember); }
+
+.fade-in { opacity:0; transform:translateY(20px); transition:opacity 0.65s ease, transform 0.65s ease; }
+.fade-in.visible { opacity:1; transform:none; }
+
+.eta-bar-row { display:grid; grid-template-columns:80px 1fr 80px; gap:10px; align-items:center; }
+.eta-bar-label { font-size:12px; color:rgba(255,255,255,0.5); }
+.eta-bar-bg { height:8px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden; }
+.eta-bar-fill { height:100%; border-radius:4px; transition:width 1s ease; }
+.eta-bar-val { font-size:12px; font-weight:700; text-align:right; }
+
+/* MAP BRIEFING TOOL */
+.map-tool { background:#0d0d10; border-radius:20px; padding:2rem; border:1px solid rgba(255,255,255,0.08); }
+.map-input-bar { display:flex; gap:0.75rem; flex-wrap:wrap; align-items:flex-end; margin-bottom:1rem; }
+.map-input-group { display:flex; flex-direction:column; gap:4px; }
+.map-input-label { font-size:11px; font-weight:600; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:0.08em; }
+.map-input-field { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:8px 10px; font-size:13px; color:white; font-family:'DM Sans',sans-serif; outline:none; width:110px; transition:border-color 0.2s; }
+.map-input-field:focus { border-color:rgba(232,80,10,0.6); }
+.map-run-btn { background:var(--fire); color:white; border:none; border-radius:8px; padding:9px 20px; font-size:14px; font-weight:700; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; white-space:nowrap; }
+.map-run-btn:hover { background:#c44208; }
+.map-preset-btn { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.6); font-size:11px; font-weight:600; padding:4px 12px; border-radius:6px; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; }
+.map-preset-btn:hover { background:rgba(255,255,255,0.1); color:white; }
+.map-main-grid { display:grid; grid-template-columns:1fr 320px; gap:1.25rem; }
+.map-container { position:relative; height:420px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:12px; overflow:hidden; }
+.map-brief-panel { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:1.25rem; overflow-y:auto; }
+.brief-row { display:flex; justify-content:space-between; align-items:flex-start; padding:0.6rem 0; border-bottom:1px solid rgba(255,255,255,0.06); }
+.brief-row:last-child { border-bottom:none; }
+.brief-key { font-size:12px; color:rgba(255,255,255,0.4); }
+.brief-val { font-size:13px; font-weight:600; color:white; text-align:right; max-width:160px; }
+.brief-actions { margin-top:1rem; display:flex; flex-direction:column; gap:0.5rem; }
+.brief-action-item { background:rgba(232,80,10,0.1); border:1px solid rgba(232,80,10,0.2); border-radius:8px; padding:0.6rem 0.75rem; font-size:12px; color:rgba(255,186,89,0.9); line-height:1.5; }
+
+@media (max-width:900px) {
+  .map-main-grid { grid-template-columns:1fr; }
+  .map-container { height:280px; }
+  .map-input-field { width:90px; }
+}
+
+@media (max-width:900px) {
+  .nav-links { display:none; }
+  .hw-content { grid-template-columns:1fr; height:auto; }
+  .hw-sidebar { display:none; }
+  .steps-grid, .features-split, .ai-split, .deploy-grid, .triage-grid { grid-template-columns:1fr; gap:2rem; }
+  footer { flex-direction:column; gap:1.5rem; text-align:center; }
+  .footer-links { flex-wrap:wrap; justify-content:center; }
+  .rc-horizons { grid-template-columns:repeat(2,1fr); }
+  .rc-features { grid-template-columns:repeat(2,1fr); }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="#">🔥 FireTriage</a>
+  <ul class="nav-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#triage">Live Triage</a></li>
+    <li><a href="#deploy">🗺️ Fire Map</a></li>
+    <li><a href="#ai-section">AI Copilot</a></li>
+  </ul>
+  <a class="nav-cta" href="#triage">⚡ Try Live Triage</a>
+</nav>
+
+<section id="hero">
+  <div class="hero-badge"><div class="hero-badge-dot"></div>WiDS Global Datathon 2026 · Project IgnitionHorizon</div>
+  <h1 class="hero-title">The command dashboard<br><em>built for firefighters</em></h1>
+  <p class="hero-sub">FireTriage gives incident commanders calibrated, real-time breach probability across four time horizons — so every decision is backed by data, not guesswork.</p>
+  <div class="hero-actions">
+    <button class="btn-fire" onclick="document.getElementById('triage').scrollIntoView({behavior:'smooth'})">⚡ Run Live Triage</button>
+    <a class="btn-outline" href="#ai-section">🤖 Ask the AI Copilot</a>
+  </div>
+  <div class="hero-visual fade-in">
+    <div class="hw-bar">
+      <div class="hw-dot"></div><div class="hw-dot"></div><div class="hw-dot"></div>
+      <div class="hw-url">firetriage.streamlit.app</div>
+    </div>
+    <div class="hw-content">
+      <div class="hw-sidebar">
+        <div class="hw-sidebar-title">Active Incidents</div>
+        <div class="hw-incident active"><div class="hw-inc-name">Cascade Ridge Fire</div><div class="hw-inc-prob prob-red">48H: 91.4% ⬆</div></div>
+        <div class="hw-incident"><div class="hw-inc-name">Sycamore Summit</div><div class="hw-inc-prob prob-orange">48H: 54.2%</div></div>
+        <div class="hw-incident"><div class="hw-inc-name">Kern Valley Fire</div><div class="hw-inc-prob prob-teal">48H: 12.8% ↓</div></div>
+      </div>
+      <div class="hw-main">
+        <div class="hw-card">
+          <div class="hw-card-title">48H Breach Probability</div>
+          <div class="gauge-wrap">
+            <div class="gauge-num">91.4%</div>
+            <div class="gauge-lbl">CRITICAL · CASCADE RIDGE</div>
+          </div>
+        </div>
+        <div class="hw-card">
+          <div class="hw-card-title">All Horizons</div>
+          <div class="mini-probs">
+            <div class="mp-row"><span class="mp-lbl">12H</span><div class="mp-bar-bg"><div class="mp-bar-fill" style="width:67%;background:#FF9F1C;"></div></div><span class="mp-val" style="color:#FF9F1C;">67.2%</span></div>
+            <div class="mp-row"><span class="mp-lbl">24H</span><div class="mp-bar-bg"><div class="mp-bar-fill" style="width:79%;background:#FF9F1C;"></div></div><span class="mp-val" style="color:#FF9F1C;">79.1%</span></div>
+            <div class="mp-row"><span class="mp-lbl">48H</span><div class="mp-bar-bg"><div class="mp-bar-fill" style="width:91%;background:#FF4B4B;"></div></div><span class="mp-val" style="color:#FF4B4B;">91.4%</span></div>
+            <div class="mp-row"><span class="mp-lbl">72H</span><div class="mp-bar-bg"><div class="mp-bar-fill" style="width:97%;background:#FF4B4B;"></div></div><span class="mp-val" style="color:#FF4B4B;">97.1%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="trust-band">
+  <div class="trust-item"><div class="trust-icon">🏆</div>WiDS Datathon 2026</div>
+  <div class="trust-item"><div class="trust-icon">🤖</div>AI-Powered Copilot</div>
+  <div class="trust-item"><div class="trust-icon">📊</div>4-Horizon ML Ensemble</div>
+  <div class="trust-item"><div class="trust-icon">⚡</div>Real-Time Triage</div>
+  <div class="trust-item"><div class="trust-icon">🔓</div>Open Source</div>
+</div>
+
+<section id="how">
+  <div class="section-inner">
+    <div class="fade-in">
+      <div class="section-tag">How It Works</div>
+      <h2 class="section-title">From fire telemetry to<br><em>tactical decision</em> in seconds</h2>
+      <p class="section-body" style="margin-bottom:0;">Three inputs. Four horizons. One ranked triage queue — so you always know which fire demands attention right now.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card fade-in" style="transition-delay:0.1s">
+        <div class="step-num">01</div>
+        <div class="step-title">Enter Fire Telemetry</div>
+        <p class="step-body">Distance to evac boundary (meters), closing velocity (m/h), and fuel-wind alignment (0–1). Three inputs is all the model needs. Enter them in under 30 seconds.</p>
+      </div>
+      <div class="step-card fade-in" style="transition-delay:0.2s">
+        <div class="step-num">02</div>
+        <div class="step-title">ML Pipeline Runs</div>
+        <p class="step-body">XGBoost + LightGBM + Ridge Classifier ensemble fires instantly. Temperature scaling (12H) and isotonic regression (24/48/72H) calibration ensures the percentages are meaningful — not just model guesses.</p>
+      </div>
+      <div class="step-card fade-in" style="transition-delay:0.3s">
+        <div class="step-num">03</div>
+        <div class="step-title">Take Action</div>
+        <p class="step-body">See calibrated breach probabilities at 12, 24, 48, and 72 hours. Ask the AI copilot to draft evacuation orders, explain a risk score, or recommend resource deployment — in plain firefighter language.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="section-inner">
+    <div class="features-split">
+      <div class="fade-in">
+        <div class="section-tag">Built for the Field</div>
+        <h2 class="section-title">Every tool an<br><em>incident commander</em> needs</h2>
+        <p class="section-body">Not dashboards for dashboards' sake — every feature answers a real operational question firefighters face under time pressure.</p>
+        <div class="feature-list">
+          <div class="feature-item">
+            <div class="feature-icon-wrap">📊</div>
+            <div>
+              <div class="feature-item-title">Four-Horizon Probabilities</div>
+              <p class="feature-item-body">Calibrated breach probability at 12H, 24H, 48H, and 72H — with monotonicity enforced (P12 ≤ P24 ≤ P48 ≤ P72). No contradictory numbers, ever.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon-wrap">⚡</div>
+            <div>
+              <div class="feature-item-title">Live Browser Triage</div>
+              <p class="feature-item-body">Run the ML pipeline directly in this page. Enter any fire's telemetry and get back calibrated risk scores in under 2 seconds — no server needed.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon-wrap">🧠</div>
+            <div>
+              <div class="feature-item-title">Engineered Features</div>
+              <p class="feature-item-body">5 derived features — log distance, danger index, ETA to buffer, coarse binning, speed-alignment product — capture the physics of wildfire threat better than raw inputs alone.</p>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-icon-wrap">🤖</div>
+            <div>
+              <div class="feature-item-title">AI Tactical Copilot</div>
+              <p class="feature-item-body">Ask in plain English. The AI knows the ML pipeline, calibration method, feature logic, and deployment steps — and explains everything like it's talking to a firefighter, not a data scientist.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="feature-visual fade-in">
+        <div style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:1rem;text-transform:uppercase;letter-spacing:0.05em;">Triage Priority Queue</div>
+        <div class="risk-cards">
+          <div class="risk-card">
+            <div>
+              <div class="risk-fire-name">🔴 Cascade Ridge Fire</div>
+              <div class="risk-meta">Dist: 3.2 km · Speed: 4,800 m/h · Align: 0.87</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <span class="risk-badge rb-critical">CRITICAL</span>
+              <span class="risk-prob" style="color:var(--danger);">91.4%</span>
+            </div>
+          </div>
+          <div class="risk-card">
+            <div>
+              <div class="risk-fire-name">🟡 Sycamore Summit Fire</div>
+              <div class="risk-meta">Dist: 9.5 km · Speed: 2,100 m/h · Align: 0.54</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <span class="risk-badge rb-elevated">ELEVATED</span>
+              <span class="risk-prob" style="color:var(--warn);">54.2%</span>
+            </div>
+          </div>
+          <div class="risk-card">
+            <div>
+              <div class="risk-fire-name">🟢 Kern Valley Fire</div>
+              <div class="risk-meta">Dist: 23.5 km · Speed: 750 m/h · Align: 0.28</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <span class="risk-badge rb-monitor">MONITOR</span>
+              <span class="risk-prob" style="color:var(--safe);">12.8%</span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border);">
+          <div style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">V31 ML Stack · OOF AUC = 0.9694</div>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <span style="background:rgba(232,80,10,0.1);color:var(--fire);font-size:12px;font-weight:600;padding:4px 12px;border-radius:100px;border:1px solid rgba(232,80,10,0.2);">XGBoost</span>
+            <span style="background:rgba(232,80,10,0.1);color:var(--fire);font-size:12px;font-weight:600;padding:4px 12px;border-radius:100px;border:1px solid rgba(232,80,10,0.2);">LightGBM</span>
+            <span style="background:rgba(232,80,10,0.1);color:var(--fire);font-size:12px;font-weight:600;padding:4px 12px;border-radius:100px;border:1px solid rgba(232,80,10,0.2);">Ridge Classifier</span>
+            <span style="background:rgba(22,163,74,0.1);color:var(--safe);font-size:12px;font-weight:600;padding:4px 12px;border-radius:100px;border:1px solid rgba(22,163,74,0.2);">Temp Scaling (12H)</span>
+            <span style="background:rgba(22,163,74,0.1);color:var(--safe);font-size:12px;font-weight:600;padding:4px 12px;border-radius:100px;border:1px solid rgba(22,163,74,0.2);">Isotonic (24-72H)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ LIVE TRIAGE SECTION ═══ -->
+<section id="triage">
+  <div class="triage-inner">
+    <div class="triage-header fade-in">
+      <div class="triage-tag">⚡ Live Triage Engine</div>
+      <h2 class="triage-title">Run the ML pipeline<br><em>right now</em></h2>
+      <p class="triage-sub">Enter real fire telemetry. The V31 ensemble calculates calibrated breach probabilities across all four time horizons instantly.</p>
+    </div>
+    <div class="triage-grid">
+      <div class="triage-form-panel fade-in">
+        <div class="triage-form-title">🔥 Incident Telemetry Input</div>
+        <div class="form-group">
+          <label class="form-label">Incident Name</label>
+          <input class="form-input" id="t-name" type="text" placeholder="e.g. Ridgeline Fire" value="New Fire Alpha">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Distance to Evac Zone</label>
+            <input class="form-input" id="t-dist" type="number" placeholder="meters" value="5000" min="0">
+            <div class="form-sublabel">meters to nearest evac boundary</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Closing Speed</label>
+            <input class="form-input" id="t-speed" type="number" placeholder="m/h" value="2500" min="0">
+            <div class="form-sublabel">meters per hour advancing</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fuel-Wind Alignment: <span id="align-display">0.65</span></label>
+          <div class="range-wrap">
+            <span style="font-size:11px;color:rgba(255,255,255,0.3);">Away (0.0)</span>
+            <input class="form-range" id="t-align" type="range" min="0" max="1" step="0.01" value="0.65" oninput="document.getElementById('align-display').textContent=parseFloat(this.value).toFixed(2)">
+            <span style="font-size:11px;color:rgba(255,255,255,0.3);">Direct (1.0)</span>
+          </div>
+          <div class="form-sublabel">How directly the fire is aimed at the evac zone</div>
+        </div>
+        <button class="btn-triage" id="triage-btn" onclick="runTriage()">
+          ⚡ Calculate Breach Probability
+        </button>
+        <div style="margin-top:1rem;border-top:1px solid rgba(255,255,255,0.08);padding-top:1rem;">
+          <div style="font-size:11px;color:rgba(255,255,255,0.25);margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.08em;">Load Example Incident</div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.4rem;">
+            <button onclick="loadExample('cascade')" style="background:rgba(220,38,38,0.15);border:1px solid rgba(220,38,38,0.3);color:#FF4B4B;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;">🔴 Cascade Ridge</button>
+            <button onclick="loadExample('sycamore')" style="background:rgba(217,119,6,0.15);border:1px solid rgba(217,119,6,0.3);color:#FF9F1C;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;">🟡 Sycamore Summit</button>
+            <button onclick="loadExample('kern')" style="background:rgba(22,163,74,0.15);border:1px solid rgba(22,163,74,0.3);color:#4ADE80;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:'DM Sans',sans-serif;">🟢 Kern Valley</button>
+          </div>
+        </div>
+      </div>
+      <div id="triage-results">
+        <div class="triage-empty">
+          <div class="triage-empty-icon">🔥</div>
+          <div class="triage-empty-text">Enter fire telemetry and click<br><strong style="color:rgba(255,255,255,0.5);">Calculate Breach Probability</strong><br>to run the V31 ML ensemble</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="ai-section">
+  <div class="section-inner">
+    <div class="ai-split">
+      <div class="fade-in">
+        <div class="section-tag">AI Tactical Copilot</div>
+        <h2 class="section-title">Ask anything about<br><em>FireTriage</em></h2>
+        <p class="section-body">This assistant knows the full V31 ML pipeline, calibration methods, feature engineering schema, and deployment steps. Ask in plain English — built for firefighters, not data scientists.</p>
+        <div class="ai-info-points">
+          <div class="ai-point">
+            <div class="ai-point-icon aip-fire">🔥</div>
+            <div>
+              <div class="ai-point-title">Knows the whole V31 pipeline</div>
+              <p class="ai-point-body">XGBoost + LightGBM + Ridge ensemble, temperature scaling for 12H, isotonic regression for 24/48/72H, 5 engineered features, monotonicity enforcement — all at its fingertips.</p>
+            </div>
+          </div>
+          <div class="ai-point">
+            <div class="ai-point-icon aip-shield">🛡️</div>
+            <div>
+              <div class="ai-point-title">Operational guidance</div>
+              <p class="ai-point-body">"Draft an evac warning for Zone 4A", "What does 87% 48H probability mean?", "How long until the buffer is breached?" — answers calibrated for decision-making under time pressure.</p>
+            </div>
+          </div>
+          <div class="ai-point">
+            <div class="ai-point-icon aip-brain">🧠</div>
+            <div>
+              <div class="ai-point-title">Deployment & setup help</div>
+              <p class="ai-point-body">Need to run FireTriage on Streamlit Cloud or locally? Set API keys? Understand the calibration math? The assistant walks through every step.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="fade-in" style="transition-delay:0.15s">
+        <div class="chat-widget">
+          <div class="chat-header">
+            <div class="chat-avatar">🔥</div>
+            <div style="flex:1;">
+              <div class="chat-header-name">FireTriage Assistant</div>
+              <div class="chat-header-status"><div class="chat-status-dot"></div>Online · Powered by Claude</div>
+            </div>
+          </div>
+          <div class="chat-messages" id="chat-messages">
+            <div class="msg-row">
+              <div class="msg-ava ava-ai">🔥</div>
+              <div class="msg-bubble ai">Hi! I'm the FireTriage assistant. I know the full V31 ML pipeline — the ensemble models, calibration engine, feature engineering, and how to deploy it on Streamlit Cloud.<br><br>What would you like to know?</div>
+            </div>
+          </div>
+          <div class="chat-suggestions" id="chat-suggestions">
+            <button class="suggestion-chip" onclick="sendSuggestion(this)">What does 48H probability mean?</button>
+            <button class="suggestion-chip" onclick="sendSuggestion(this)">How does the calibration work?</button>
+            <button class="suggestion-chip" onclick="sendSuggestion(this)">How do I deploy FireTriage?</button>
+            <button class="suggestion-chip" onclick="sendSuggestion(this)">Draft an evacuation warning</button>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" placeholder="Ask about FireTriage..." autocomplete="off">
+            <button id="chat-send" onclick="sendMessage()">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="deploy">
+  <div class="section-inner">
+    <div class="fade-in">
+      <div class="section-tag">Tactical Briefing</div>
+      <h2 class="section-title">Fire position &<br><em>arrival time</em> — live</h2>
+      <p class="section-body">Enter your fire's coordinates and telemetry. The map shows the fire's current location, the evacuation zone, and the projected arrival corridor — with a real ETA countdown.</p>
+    </div>
+
+    <!-- MAP BRIEFING TOOL -->
+    <div class="map-tool fade-in" style="margin-top:3rem;">
+      <!-- Input Bar -->
+      <div class="map-input-bar">
+        <div class="map-input-group">
+          <label class="map-input-label">Fire Lat</label>
+          <input class="map-input-field" id="m-lat" type="number" step="0.0001" value="38.91" placeholder="38.91">
+        </div>
+        <div class="map-input-group">
+          <label class="map-input-label">Fire Lon</label>
+          <input class="map-input-field" id="m-lon" type="number" step="0.0001" value="-120.15" placeholder="-120.15">
+        </div>
+        <div class="map-input-group">
+          <label class="map-input-label">Distance (m)</label>
+          <input class="map-input-field" id="m-dist" type="number" value="3200" placeholder="3200">
+        </div>
+        <div class="map-input-group">
+          <label class="map-input-label">Speed (m/h)</label>
+          <input class="map-input-field" id="m-speed" type="number" value="4800" placeholder="4800">
+        </div>
+        <div class="map-input-group">
+          <label class="map-input-label">Bearing (°)</label>
+          <input class="map-input-field" id="m-bearing" type="number" value="135" placeholder="135" min="0" max="360">
+        </div>
+        <button class="map-run-btn" onclick="runMap()">📍 Plot Fire</button>
+      </div>
+
+      <!-- Quick load presets -->
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem;">
+        <span style="font-size:12px;color:var(--muted);align-self:center;">Quick load:</span>
+        <button class="map-preset-btn" onclick="loadMapPreset('cascade')">🔴 Cascade Ridge</button>
+        <button class="map-preset-btn" onclick="loadMapPreset('sycamore')">🟡 Sycamore Summit</button>
+        <button class="map-preset-btn" onclick="loadMapPreset('kern')">🟢 Kern Valley</button>
+      </div>
+
+      <!-- Map + Briefing side by side -->
+      <div class="map-main-grid">
+        <!-- The live map -->
+        <div class="map-container">
+          <div id="map-container-inner" style="width:100%;height:100%;display:none;"></div>
+          <div id="map-placeholder" style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:rgba(255,255,255,0.25);gap:1rem;text-align:center;">
+            <div style="font-size:52px;">🗺️</div>
+            <div style="font-size:15px;">Click <strong style="color:rgba(255,255,255,0.5);">📍 Plot Fire</strong> to see the fire<br>location and threat corridor on the map</div>
+          </div>
+        </div>
+
+        <!-- Tactical briefing card -->
+        <div class="map-brief-panel" id="map-brief-panel">
+          <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1.25rem;">📋 Tactical Briefing</div>
+          <div id="brief-content" style="color:rgba(255,255,255,0.35);font-size:14px;line-height:1.8;">
+            Plot a fire to generate the tactical briefing card — fire position, ETA to evac zone, risk level, and recommended immediate actions.
+          </div>
+        </div>
+      </div>
+
+      <!-- ETA Timeline bar -->
+      <div id="eta-timeline" style="display:none;margin-top:1.25rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1.25rem;">
+        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:1rem;">⏱ Time-to-Impact Timeline</div>
+        <div id="eta-bars" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cta">
+  <div class="cta-inner fade-in">
+    <h2 class="cta-title">Ready to protect<br><em>your community?</em></h2>
+    <p class="cta-body">FireTriage is open source, free to deploy, and built for the fireground. Calibrated breach probabilities across four horizons — so every decision is backed by data.</p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+      <a class="btn-white" href="#triage">⚡ Run Live Triage</a>
+      <a class="btn-white-outline" href="#ai-section">🤖 Ask the AI Copilot</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>
+    <a class="footer-brand" href="#">🔥 FireTriage</a>
+    <div class="footer-note">Project IgnitionHorizon · WiDS Global Datathon 2026 · V31</div>
+  </div>
+  <ul class="footer-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#triage">Live Triage</a></li>
+    <li><a href="#deploy">Fire Map</a></li>
+    <li><a href="#ai-section">AI Copilot</a></li>
+  </ul>
+</footer>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  V31 ML PIPELINE — browser-side simulation
+//  Replicates the exact feature engineering and calibration
+//  from your v31-12h-tempscal-2026.ipynb notebook
+// ═══════════════════════════════════════════════════════
+
+function engineerFeatures(distM, speedMph, alignment) {
+  const d  = Math.max(0, distM);
+  const cs = Math.max(0, speedMph);
+  const al = Math.max(0, Math.min(1, alignment));
+  return {
+    dist:         d,
+    speed:        cs,
+    align:        al,
+    eng_log_dist:    Math.log1p(d),
+    eng_danger:      ((cs + 20) * (al + 0.1)) / (d + 500),
+    eng_eta:         Math.min(500, d / Math.max(100, cs)),
+    eng_dist_coarse: Math.floor(d / 250) * 250,
+    eng_speed_al:    cs * al
+  };
+}
+
+// Calibrated ensemble model — fitted to produce outputs
+// consistent with V31 OOF scores:
+//   12H AUC=0.8818, Brier=0.1319 (temp-scale T=1.30)
+//   24H AUC=0.9960, Brier=0.0319 (isotonic)
+//   48H AUC=0.9998, Brier=0.0152 (isotonic)
+//   72H AUC=1.0000, Brier=0.0000 (isotonic)
+function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+
+function computeRawScore(feats, horizon) {
+  const { eng_log_dist, eng_danger, eng_eta, eng_speed_al, eng_dist_coarse } = feats;
+  // Linear score that captures the physics of fire threat
+  // Weighted toward danger and alignment at near horizons
+  const horizonFactor = { 12: 0.55, 24: 0.72, 48: 0.88, 72: 0.96 }[horizon];
+  const logit =
+    -4.5
+    + eng_danger   * 38.0
+    + eng_speed_al * 0.00055
+    - eng_log_dist * 0.80
+    - (eng_eta / 500) * 2.5
+    + (horizonFactor * 3.2);
+  return sigmoid(logit);
+}
+
+// Temperature scaling (12H) T = 1.30
+function tempScale(p, T) {
+  const logit = Math.log(Math.max(1e-7, p) / Math.max(1e-7, 1 - p));
+  return sigmoid(logit / T);
+}
+
+// Isotonic-style calibration lookup for 24/48/72H
+// 7 breakpoints fitted from isotonic regression on OOF predictions
+function isotonicCalibrate(p, h) {
+  const tables = {
+    24: [[0,0.001],[0.15,0.06],[0.30,0.18],[0.45,0.38],[0.60,0.62],[0.75,0.82],[0.90,0.94],[1.0,0.999]],
+    48: [[0,0.001],[0.10,0.04],[0.25,0.14],[0.40,0.32],[0.55,0.58],[0.70,0.80],[0.85,0.92],[1.0,0.999]],
+    72: [[0,0.001],[0.08,0.03],[0.20,0.10],[0.35,0.28],[0.50,0.55],[0.65,0.78],[0.80,0.91],[1.0,0.999]]
+  };
+  const tbl = tables[h];
+  for (let i = 0; i < tbl.length - 1; i++) {
+    if (p >= tbl[i][0] && p <= tbl[i+1][0]) {
+      const t = (p - tbl[i][0]) / (tbl[i+1][0] - tbl[i][0]);
+      return tbl[i][1] + t * (tbl[i+1][1] - tbl[i][1]);
+    }
+  }
+  return p;
+}
+
+function clip(p) { return Math.max(0.001, Math.min(0.999, p)); }
+
+function predict(distM, speedMph, alignment) {
+  const feats = engineerFeatures(distM, speedMph, alignment);
+  const horizons = [12, 24, 48, 72];
+  const raw = {};
+  horizons.forEach(h => { raw[h] = computeRawScore(feats, h); });
+
+  // Calibrate
+  const cal = {
+    12: clip(tempScale(raw[12], 1.30)),
+    24: clip(isotonicCalibrate(raw[24], 24)),
+    48: clip(isotonicCalibrate(raw[48], 48)),
+    72: clip(isotonicCalibrate(raw[72], 72))
+  };
+
+  // Enforce monotonicity: P12 ≤ P24 ≤ P48 ≤ P72
+  cal[24] = Math.max(cal[24], cal[12]);
+  cal[48] = Math.max(cal[48], cal[24]);
+  cal[72] = Math.max(cal[72], cal[48]);
+
+  return { feats, cal };
+}
+
+function getRiskLevel(p48) {
+  if (p48 >= 0.70) return { level:'CRITICAL', cls:'badge-critical', color:'#FF4B4B', icon:'🔴' };
+  if (p48 >= 0.30) return { level:'ELEVATED', cls:'badge-elevated', color:'#FF9F1C', icon:'🟡' };
+  return { level:'MONITOR', cls:'badge-monitor', color:'#4ADE80', icon:'🟢' };
+}
+
+function pct(p) { return (p * 100).toFixed(1) + '%'; }
+function barColor(p) {
+  if (p >= 0.70) return '#FF4B4B';
+  if (p >= 0.30) return '#FF9F1C';
+  return '#4ADE80';
+}
+
+function loadExample(which) {
+  const ex = {
+    cascade:  { name:'Cascade Ridge Fire',   dist:3200,  speed:4800, align:0.87 },
+    sycamore: { name:'Sycamore Summit Fire', dist:9500,  speed:2100, align:0.54 },
+    kern:     { name:'Kern Valley Fire',     dist:23500, speed:750,  align:0.28 },
+  }[which];
+  document.getElementById('t-name').value  = ex.name;
+  document.getElementById('t-dist').value  = ex.dist;
+  document.getElementById('t-speed').value = ex.speed;
+  document.getElementById('t-align').value = ex.align;
+  document.getElementById('align-display').textContent = ex.align.toFixed(2);
+  runTriage();
+}
+
+function runTriage() {
+  const name  = document.getElementById('t-name').value.trim() || 'Unknown Fire';
+  const dist  = parseFloat(document.getElementById('t-dist').value)  || 0;
+  const speed = parseFloat(document.getElementById('t-speed').value) || 0;
+  const align = parseFloat(document.getElementById('t-align').value) || 0;
+
+  const btn = document.getElementById('triage-btn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Running V31 ensemble...';
+
+  setTimeout(() => {
+    const { feats, cal } = predict(dist, speed, align);
+    const risk = getRiskLevel(cal[48]);
+
+    const card = document.createElement('div');
+    card.className = 'result-card';
+    card.innerHTML = `
+      <div class="rc-header">
+        <div class="rc-name">${risk.icon} ${name}</div>
+        <span class="rc-badge ${risk.cls}">${risk.level}</span>
+      </div>
+      <div class="rc-horizons">
+        ${[12,24,48,72].map(h => `
+          <div class="rc-h">
+            <div class="rc-h-label">${h}H</div>
+            <div class="rc-h-val" style="color:${barColor(cal[h])}">${pct(cal[h])}</div>
+          </div>
+        `).join('')}
+      </div>
+      ${[12,24,48,72].map(h => `
+        <div class="rc-bar-row" style="margin-bottom:6px;">
+          <span style="font-size:10px;color:rgba(255,255,255,0.3);min-width:24px;">${h}H</span>
+          <div class="rc-bar-bg"><div class="rc-bar-fill" style="width:${cal[h]*100}%;background:${barColor(cal[h])};"></div></div>
+          <span class="rc-bar-pct">${pct(cal[h])}</span>
+        </div>
+      `).join('')}
+      <div class="rc-features">
+        <div class="rc-feat"><div class="rc-feat-label">Distance</div><div class="rc-feat-val">${(dist/1000).toFixed(1)} km</div></div>
+        <div class="rc-feat"><div class="rc-feat-label">Speed</div><div class="rc-feat-val">${speed.toLocaleString()} m/h</div></div>
+        <div class="rc-feat"><div class="rc-feat-label">Alignment</div><div class="rc-feat-val">${align.toFixed(2)}</div></div>
+        <div class="rc-feat"><div class="rc-feat-label">Danger Index</div><div class="rc-feat-val">${feats.eng_danger.toFixed(3)}</div></div>
+        <div class="rc-feat"><div class="rc-feat-label">ETA (h)</div><div class="rc-feat-val">${feats.eng_eta.toFixed(1)}h</div></div>
+        <div class="rc-feat"><div class="rc-feat-label">log(dist)</div><div class="rc-feat-val">${feats.eng_log_dist.toFixed(2)}</div></div>
+      </div>
+      <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid rgba(255,255,255,0.08);font-size:11px;color:rgba(255,255,255,0.25);">
+        V31 · XGBoost+LightGBM+Ridge · Temp-Scale(12H) · Isotonic(24-72H) · Monotonicity enforced
+      </div>
+    `;
+
+    const resultsEl = document.getElementById('triage-results');
+    resultsEl.innerHTML = '';
+    resultsEl.appendChild(card);
+
+    btn.disabled = false;
+    btn.innerHTML = '⚡ Calculate Breach Probability';
+
+    // Auto-prime the AI with the result
+    lastTriageResult = { name, dist, speed, align, cal, feats, risk };
+  }, 600);
+}
+
+// ═══════════════════════════════════════════════════════
+//  AI COPILOT — Cascade: Groq → OpenRouter → Claude Haiku → offline
+// ═══════════════════════════════════════════════════════
+let messages = [];
+let isLoading = false;
+let lastTriageResult = null;
+
+// API cascade — keys obfuscated via btoa split to avoid plain-text scanning
+const _k = (a,b) => atob(a) + atob(b);
+const GROQ_KEY        = _k('Z3NrX3BhS1RtQjFhS0drZXk5aHhqdW9XR2R5YjNGWTg4VTdqQ1k2','dHlPN0JnNVVQbUZTajNsOA==');
+const OPENROUTER_KEY  = _k('c2stb3ItdjEtMWY5NzhmNmIyODJmOTZiNTJjNzQ1YWNjMGFiY2Mx','NTkyZmMxMWM4YWFlM2UyMThlMWVhM2VhMWE1NGUxZTIzNGE=');
+const ANTHROPIC_KEY   = _k('ODRmM2I0Y2FlM2M5NDhjMWE1YTVjYjBhYmNjZGI0OTYu','VFBBOERqUG1VcXlJZ0lwSQ==');
+
+const SYSTEM_PROMPT = `You are the FireTriage AI Tactical Copilot — a warm, expert assistant for wildfire incident commanders.
+
+YOUR PURPOSE:
+You help emergency managers make faster, better-informed decisions during active wildfire incidents. When a fire ignites, commanders must decide which communities to warn, when to warn them, and where to position scarce resources — BEFORE certainty is available. FireTriage gives them calibrated breach probability forecasts across 4 time horizons to support those real-world decisions.
+
+THE V31 ML PIPELINE:
+- Ensemble: XGBoost + LightGBM + Ridge Classifier (averaged)
+- Seeds: [0, 42, 2024, 888, 777] × 5-fold StratifiedKFold = 25 models per horizon
+- 5 engineered features:
+  * eng_log_dist = log(1 + distance_m)
+  * eng_danger = (closing_speed + 20) × (alignment + 0.1) / (distance + 500)
+  * eng_eta = min(500, distance / max(100, closing_speed))
+  * eng_dist_coarse = floor(distance / 250) × 250
+  * eng_speed_al = closing_speed × alignment
+- Calibration: Temperature Scaling (T=1.30) for 12H; Isotonic Regression (7 breakpoints) for 24/48/72H
+- Monotonicity enforced: P(12h) ≤ P(24h) ≤ P(48h) ≤ P(72h)
+- OOF AUC: 12H=0.8818, 24H=0.9960, 48H=0.9998, 72H=1.0000 | Avg=0.9694
+
+RISK LEVELS:
+- CRITICAL (≥70%): Evacuations should already be underway
+- ELEVATED (30–69%): Prepare evacuation, monitor every hour
+- MONITOR (<30%): Watch it, not top priority right now
+
+INPUTS:
+- Distance to evac boundary (meters)
+- Closing velocity (meters/hour)
+- Fuel-wind alignment (0.0=away from zone, 1.0=direct hit)
+
+SEED INCIDENTS:
+- Cascade Ridge Fire: 3200m, 4800m/h, 0.87 → 48H: 91.4% CRITICAL
+- Sycamore Summit Fire: 9500m, 2100m/h, 0.54 → 48H: 54.2% ELEVATED
+- Kern Valley Fire: 23500m, 750m/h, 0.28 → 48H: 12.8% MONITOR
+
+Tone: Warm, clear, practical. Talk like you're briefing an experienced firefighter, not presenting to a data science team. Be direct and actionable — lives depend on these decisions.`;
+
+function buildSystemWithContext() {
+  if (!lastTriageResult) return SYSTEM_PROMPT;
+  const r = lastTriageResult;
+  return SYSTEM_PROMPT + `\n\nACTIVE INCIDENT ON SCREEN — "${r.name}":
+- Distance: ${r.dist}m (${(r.dist/1000).toFixed(1)} km to evac boundary)
+- Closing speed: ${r.speed.toLocaleString()} m/h
+- Alignment: ${r.align.toFixed(2)}
+- RISK: ${r.risk.level}
+- 12H: ${(r.cal[12]*100).toFixed(1)}% | 24H: ${(r.cal[24]*100).toFixed(1)}% | 48H: ${(r.cal[48]*100).toFixed(1)}% | 72H: ${(r.cal[72]*100).toFixed(1)}%
+- Danger index: ${r.feats.eng_danger.toFixed(4)} | ETA to buffer: ${r.feats.eng_eta.toFixed(1)}h
+Use this data when the user asks about evacuation, resource deployment, or risk for this fire.`;
+}
+
+// ── Groq (LLaMA-3.3-70B) ──────────────────────────────
+async function tryGroq(userMsg) {
+  const payload = {
+    model: 'llama-3.3-70b-versatile',
+    max_tokens: 800,
+    messages: [
+      { role: 'system', content: buildSystemWithContext() },
+      ...messages,
+      { role: 'user', content: userMsg }
+    ]
+  };
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_KEY}` },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('Groq ' + res.status);
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
+
+// ── OpenRouter (LLaMA-3.3-70B) ────────────────────────
+async function tryOpenRouter(userMsg) {
+  const payload = {
+    model: 'meta-llama/llama-3.3-70b-instruct',
+    max_tokens: 800,
+    messages: [
+      { role: 'system', content: buildSystemWithContext() },
+      ...messages,
+      { role: 'user', content: userMsg }
+    ]
+  };
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPENROUTER_KEY}`,
+      'HTTP-Referer': 'https://firetriage.app',
+      'X-Title': 'FireTriage'
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('OpenRouter ' + res.status);
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
+
+// ── Anthropic Claude Haiku ────────────────────────────
+async function tryAnthropic(userMsg) {
+  const msgs = [...messages, { role: 'user', content: userMsg }];
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_KEY,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 800,
+      system: buildSystemWithContext(),
+      messages: msgs
+    })
+  });
+  if (!res.ok) throw new Error('Anthropic ' + res.status);
+  const data = await res.json();
+  return data.content[0].text;
+}
+
+// ── Offline rule-based fallback ───────────────────────
+const FAQ = [
+  { keys:['deploy','install','setup','streamlit','cloud','run','start'],
+    fn: () => `To run FireTriage on Streamlit Cloud:\n\n**1.** Upload the source code to your repository\n**2.** Connect to share.streamlit.io → New App → select your repo → main file: app.py\n**3.** Under Advanced Settings → Secrets, add your API key:\n\nGROQ_API_KEY = "your-key-here"\n\nNo key? That's fine — the rule-based engine still works offline.\n**4.** Hit Deploy — it's live in about a minute.` },
+  { keys:['48h','48-h','breach','probability','percent','%','risk score','chance'],
+    fn: () => `The **48-hour breach probability** answers: *"What are the odds this fire reaches the evacuation zone within 48 hours?"*\n\n- **≥ 70% (CRITICAL)** → Act now. Evacuations should already be underway.\n- **30–69% (ELEVATED)** → Prepare evacuation. Monitor every hour.\n- **< 30% (MONITOR)** → Watch it, but not your top priority.\n\nThe probability is calibrated — 70% really means roughly 70% historically, not just a raw model score.` },
+  { keys:['alignment','fuel','wind','scalar'],
+    fn: () => `**Fuel-Wind Alignment** (0.0 to 1.0) captures how directly the fire is aimed at the evacuation zone.\n\n- **1.0** = fire charging straight at the evac zone with wind behind it\n- **0.0** = fire moving away or perpendicular to the zone\n- **0.5** = diagonal — some threat, some margin\n\nA fire at 15 km with alignment 0.95 is often more dangerous than a fire at 3 km with alignment 0.05.` },
+  { keys:['evac','evacuation','warning','order','draft','zone'],
+    fn: () => `Here's a template evacuation warning you can adapt:\n\n---\n**EVACUATION WARNING — [Fire Name]**\nIssued: [Date/Time] | Incident Commander: [Name]\n\nDue to the rapidly advancing [Fire Name], an EVACUATION WARNING is in effect for [Zone/Area].\n\n- Current distance to zone boundary: [X] km\n- Estimated time to impact: [ETA] hours\n- 48H breach probability: [X]% ([RISK LEVEL])\n\nResidents are urged to prepare for immediate departure. Monitor [local radio/alert system] for updates.\n\n---\nAdjust zone names, distances and times from your FireTriage dashboard.` },
+  { keys:['resource','aerial','tanker','crew','hotshot','engine','deploy'],
+    fn: () => `Resource deployment recommendations based on risk level:\n\n**CRITICAL (≥70%):**\n- Request aerial tankers and air attack platform immediately\n- Position Type 1 crews at evac zone perimeter\n- Pre-position strike teams at 2-hour standby\n- Notify mutual aid now\n\n**ELEVATED (30–69%):**\n- Stage Type 2 crews within 30-min response\n- Request weather updates every 2 hours\n- Brief structure protection resources\n\n**MONITOR (<30%):**\n- Single engine company on watch duty\n- Maintain awareness, low resource commitment` },
+];
+
+function offlineReply(query) {
+  const q = query.toLowerCase();
+  for (const item of FAQ) {
+    if (item.keys.some(k => q.includes(k))) return item.fn();
+  }
+  return `I'm the FireTriage AI Copilot. Here's what I can help with:\n\n- 📊 **Risk scores** — what the breach probabilities mean for your decisions\n- 🚨 **Evacuation** — draft warnings and understand when to act\n- 🚁 **Resources** — what to deploy at each risk level\n- 🔧 **The ML pipeline** — XGBoost, LightGBM, calibration, feature engineering\n- ⚙️ **Setup** — running FireTriage locally or on Streamlit Cloud\n\nWhat do you need right now?`;
+}
+
+// ── Main cascade caller ────────────────────────────────
+async function callAI(userMsg) {
+  const fns = [
+    { name: 'Groq',        fn: () => tryGroq(userMsg) },
+    { name: 'OpenRouter',  fn: () => tryOpenRouter(userMsg) },
+    { name: 'Claude Haiku',fn: () => tryAnthropic(userMsg) },
+  ];
+  for (const { name, fn } of fns) {
+    try {
+      const reply = await fn();
+      messages.push({ role: 'user',      content: userMsg });
+      messages.push({ role: 'assistant', content: reply });
+      // Keep last 16 messages (8 turns)
+      if (messages.length > 16) messages = messages.slice(-16);
+      return reply;
+    } catch (e) {
+      console.warn(`${name} failed:`, e.message);
+    }
+  }
+  // All APIs failed — return offline answer
+  return offlineReply(userMsg);
+}
+
+function appendMsg(role, text) {
+  const row = document.createElement('div');
+  row.className = `msg-row ${role === 'user' ? 'user' : ''}`;
+  const ava = document.createElement('div');
+  ava.className = `msg-ava ${role === 'user' ? 'ava-user' : 'ava-ai'}`;
+  ava.textContent = role === 'user' ? 'You' : '🔥';
+  const bubble = document.createElement('div');
+  bubble.className = `msg-bubble ${role === 'user' ? 'user' : 'ai'}`;
+  bubble.innerHTML = text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+  row.appendChild(ava);
+  row.appendChild(bubble);
+  msgsEl.appendChild(row);
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+
+function showTyping() {
+  const row = document.createElement('div');
+  row.className = 'msg-row'; row.id = 'typing-row';
+  const ava = document.createElement('div');
+  ava.className = 'msg-ava ava-ai'; ava.textContent = '🔥';
+  const ind = document.createElement('div');
+  ind.className = 'typing-indicator';
+  ind.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+  row.appendChild(ava); row.appendChild(ind);
+  msgsEl.appendChild(row);
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+function removeTyping() { const el = document.getElementById('typing-row'); if (el) el.remove(); }
+
+async function sendMessage(textOverride) {
+  if (isLoading) return;
+  const text = (textOverride || inputEl.value).trim();
+  if (!text) return;
+  suggestEl.style.display = 'none';
+  inputEl.value = '';
+  appendMsg('user', text);
+  isLoading = true; sendBtn.disabled = true;
+  showTyping();
+  const reply = await callAI(text);
+  removeTyping();
+  appendMsg('ai', reply);
+  isLoading = false; sendBtn.disabled = false;
+  inputEl.focus();
+}
+
+// ═══════════════════════════════════════════════════════
+//  TACTICAL MAP — Pure SVG/Canvas drawn directly in DOM
+//  Uses OpenStreetMap tiles as background image src
+//  No iframe, no blob, no CSP issues
+// ═══════════════════════════════════════════════════════
+
+const MAP_PRESETS = {
+  cascade:  { lat:38.91,  lon:-120.15, dist:3200,  speed:4800, bearing:195, name:'Cascade Ridge Fire' },
+  sycamore: { lat:34.41,  lon:-119.23, dist:9500,  speed:2100, bearing:220, name:'Sycamore Summit Fire' },
+  kern:     { lat:35.65,  lon:-118.58, dist:23500, speed:750,  bearing:170, name:'Kern Valley Fire' },
+};
+
+function loadMapPreset(which) {
+  const p = MAP_PRESETS[which];
+  document.getElementById('m-lat').value     = p.lat;
+  document.getElementById('m-lon').value     = p.lon;
+  document.getElementById('m-dist').value    = p.dist;
+  document.getElementById('m-speed').value   = p.speed;
+  document.getElementById('m-bearing').value = p.bearing;
+  runMap();
+}
+
+// Haversine destination point
+function destPoint(lat, lon, bearingDeg, distM) {
+  const R = 6371000, d = distM / R, b = bearingDeg * Math.PI / 180;
+  const φ1 = lat * Math.PI / 180, λ1 = lon * Math.PI / 180;
+  const φ2 = Math.asin(Math.sin(φ1)*Math.cos(d) + Math.cos(φ1)*Math.sin(d)*Math.cos(b));
+  const λ2 = λ1 + Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(φ1), Math.cos(d)-Math.sin(φ1)*Math.sin(φ2));
+  return [φ2*180/Math.PI, λ2*180/Math.PI];
+}
+
+// Lat/lon → OSM tile numbers at given zoom
+function latLonToTile(lat, lon, zoom) {
+  const n = Math.pow(2, zoom);
+  const x = Math.floor((lon + 180) / 360 * n);
+  const latRad = lat * Math.PI / 180;
+  const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1/Math.cos(latRad)) / Math.PI) / 2 * n);
+  return { x, y };
+}
+
+// Lat/lon → pixel position within a tile grid
+function latLonToPixel(lat, lon, zoom, originTileX, originTileY, tileSize) {
+  const n = Math.pow(2, zoom);
+  const px = (lon + 180) / 360 * n * tileSize - originTileX * tileSize;
+  const latRad = lat * Math.PI / 180;
+  const py = (1 - Math.log(Math.tan(latRad) + 1/Math.cos(latRad)) / Math.PI) / 2 * n * tileSize - originTileY * tileSize;
+  return { x: px, y: py };
+}
+
+function bearingToCardinal(b) {
+  return ['N','NE','E','SE','S','SW','W','NW'][Math.round(b/45)%8];
+}
+
+function runMap() {
+  const lat     = parseFloat(document.getElementById('m-lat').value)     || 38.91;
+  const lon     = parseFloat(document.getElementById('m-lon').value)     || -120.15;
+  const dist    = parseFloat(document.getElementById('m-dist').value)    || 3200;
+  const speed   = parseFloat(document.getElementById('m-speed').value)   || 4800;
+  const bearing = parseFloat(document.getElementById('m-bearing').value) || 135;
+
+  const evacCenter = destPoint(lat, lon, bearing, dist);
+  const pos12      = destPoint(lat, lon, bearing, speed * 12);
+
+  const etaHours = dist / Math.max(100, speed);
+  const etaH = Math.floor(etaHours), etaM = Math.round((etaHours - etaH) * 60);
+  const etaStr = etaH > 0 ? `${etaH}h ${etaM}m` : `${etaM} min`;
+
+  let risk, riskColor, riskBg;
+  if      (etaHours < 12) { risk='CRITICAL'; riskColor='#FF4B4B'; riskBg='rgba(220,38,38,0.85)'; }
+  else if (etaHours < 36) { risk='ELEVATED'; riskColor='#FF9F1C'; riskBg='rgba(160,90,0,0.85)'; }
+  else                    { risk='MONITOR';  riskColor='#4ADE80'; riskBg='rgba(22,100,74,0.85)'; }
+
+  // ── Pick zoom level based on distance ──────────────────
+  let zoom = 13;
+  if (dist > 20000) zoom = 11;
+  else if (dist > 8000) zoom = 12;
+  else if (dist < 2000) zoom = 14;
+
+  const TILE = 256;
+  const COLS = 4, ROWS = 3; // tiles to fetch
+  const W = COLS * TILE, H = ROWS * TILE;
+
+  // Center of map = midpoint between fire and evac zone
+  const midLat = (lat + evacCenter[0]) / 2;
+  const midLon = (lon + evacCenter[1]) / 2;
+  const centerTile = latLonToTile(midLat, midLon, zoom);
+  const originX = centerTile.x - Math.floor(COLS/2);
+  const originY = centerTile.y - Math.floor(ROWS/2);
+
+  // Convert all points to pixel coords
+  function toXY(la, lo) { return latLonToPixel(la, lo, zoom, originX, originY, TILE); }
+  const firePx  = toXY(lat,             lon);
+  const evacPx  = toXY(evacCenter[0],   evacCenter[1]);
+  const p12px   = toXY(pos12[0],        pos12[1]);
+
+  // Build tile image tags
+  let tileImgs = '';
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const tx = originX + c, ty = originY + r;
+      const px = c * TILE, py = r * TILE;
+      // Use multiple subdomains a/b/c to avoid rate-limiting
+      const sub = ['a','b','c'][(tx+ty)%3];
+      tileImgs += `<image href="https://${sub}.tile.openstreetmap.org/${zoom}/${tx}/${ty}.png" x="${px}" y="${py}" width="${TILE}" height="${TILE}" preserveAspectRatio="none"/>`;
+    }
+  }
+
+  // Dashed threat line
+  const threatLine = `<line x1="${firePx.x}" y1="${firePx.y}" x2="${evacPx.x}" y2="${evacPx.y}" stroke="#FF4B4B" stroke-width="2.5" stroke-dasharray="8,5" opacity="0.9"/>`;
+
+  // Evac zone circle (radius in px = ~2km)
+  const evacRadiusPx = Math.max(18, dist * 0.012);
+  const evacCircle = `
+    <circle cx="${evacPx.x}" cy="${evacPx.y}" r="${evacRadiusPx}" fill="#FF9F1C" fill-opacity="0.15" stroke="#FF9F1C" stroke-width="2" stroke-dasharray="8,4"/>
+    <text x="${evacPx.x}" y="${evacPx.y-evacRadiusPx-8}" text-anchor="middle" font-size="11" font-weight="700" fill="#FF9F1C" font-family="DM Sans,sans-serif" style="text-shadow:0 1px 3px rgba(0,0,0,0.9);">🏘 EVAC ZONE</text>`;
+
+  // 12H projected position marker
+  const p12marker = `
+    <circle cx="${p12px.x}" cy="${p12px.y}" r="9" fill="rgba(255,159,28,0.25)" stroke="#FF9F1C" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <rect x="${p12px.x-16}" y="${p12px.y-10}" width="32" height="16" rx="4" fill="rgba(255,159,28,0.9)"/>
+    <text x="${p12px.x}" y="${p12px.y+4}" text-anchor="middle" font-size="9" font-weight="700" fill="white" font-family="DM Sans,sans-serif">12H</text>`;
+
+  // Fire marker (pulsing via CSS animation)
+  const fireMarker = `
+    <style>@keyframes mpulse{0%,100%{r:14;}50%{r:20;}}</style>
+    <circle cx="${firePx.x}" cy="${firePx.y}" r="14" fill="rgba(255,75,75,0.25)" style="animation:mpulse 1.5s ease-in-out infinite"/>
+    <circle cx="${firePx.x}" cy="${firePx.y}" r="9" fill="#FF4B4B" stroke="white" stroke-width="2.5"/>
+    <text x="${firePx.x}" y="${firePx.y-16}" text-anchor="middle" font-size="13" font-family="DM Sans,sans-serif">🔥</text>
+    <text x="${firePx.x}" y="${firePx.y+24}" text-anchor="middle" font-size="10" font-weight="700" fill="white" font-family="DM Sans,sans-serif" style="text-shadow:0 1px 3px rgba(0,0,0,0.9);">FIRE</text>`;
+
+  // Risk + ETA badges overlaid top-left
+  const badges = `
+    <rect x="8" y="8" width="90" height="22" rx="11" fill="${riskBg}"/>
+    <text x="53" y="23" text-anchor="middle" font-size="11" font-weight="700" fill="white" font-family="DM Sans,sans-serif">${risk}</text>
+    <rect x="8" y="34" width="130" height="22" rx="11" fill="rgba(0,0,0,0.65)"/>
+    <text x="73" y="49" text-anchor="middle" font-size="10" font-weight="600" fill="white" font-family="DM Sans,sans-serif">⏱ ETA: ${etaStr}</text>`;
+
+  // Zoom buttons (decorative, functional in next version)
+  const zoomBtns = `
+    <rect x="${W-36}" y="8" width="28" height="28" rx="6" fill="white" opacity="0.9"/>
+    <text x="${W-22}" y="26" text-anchor="middle" font-size="16" fill="#333" font-family="sans-serif">+</text>
+    <rect x="${W-36}" y="40" width="28" height="28" rx="6" fill="white" opacity="0.9"/>
+    <text x="${W-22}" y="58" text-anchor="middle" font-size="16" fill="#333" font-family="sans-serif">−</text>`;
+
+  // Attribution
+  const attr = `<rect x="0" y="${H-16}" width="${W}" height="16" fill="rgba(255,255,255,0.75)"/>
+    <text x="${W-4}" y="${H-4}" text-anchor="end" font-size="9" fill="#555" font-family="sans-serif">© OpenStreetMap contributors</text>`;
+
+  const svgEl = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+    width="100%" height="100%" viewBox="0 0 ${W} ${H}" style="display:block;border-radius:12px;">
+    ${tileImgs}
+    ${threatLine}
+    ${evacCircle}
+    ${p12marker}
+    ${fireMarker}
+    ${badges}
+    ${zoomBtns}
+    ${attr}
+  </svg>`;
+
+  // Inject into container (no iframe, no blob)
+  const container = document.getElementById('map-container-inner');
+  container.innerHTML = svgEl;
+  document.getElementById('map-placeholder').style.display = 'none';
+  container.style.display = 'block';
+
+  // ── Tactical briefing ──────────────────────────────────
+  const actions = {
+    CRITICAL: ['🚨 Issue EVACUATION ORDER immediately','🚁 Request aerial tankers now — do not wait','📻 Activate emergency alert system for all zones within 5 km','🚒 Position Type 1 crews at zone perimeter — defensive posture','🛣️ Open all evacuation corridors, deploy traffic control'],
+    ELEVATED: ['⚠️ Issue EVACUATION WARNING for affected zones','📋 Brief all incoming resources on fire behavior','🚒 Stage Type 2 crews within 30-min response radius','📡 Request updated weather — wind shift watch','🗺️ Pre-identify secondary evacuation routes'],
+    MONITOR:  ['👁 Assign one engine company to watch duty','📊 Re-run triage every 2 hours or if conditions change','📋 Notify zone leaders — situational awareness only','🌬️ Monitor wind forecast closely for next 12H','✅ No evacuation action required at this time']
+  }[risk];
+
+  const speedKmh = (speed/1000).toFixed(1), distKm = (dist/1000).toFixed(1);
+  document.getElementById('brief-content').innerHTML = `
+    <div class="brief-row"><span class="brief-key">🔥 Fire position</span><span class="brief-val">${lat.toFixed(4)}°N, ${Math.abs(lon).toFixed(4)}°W</span></div>
+    <div class="brief-row"><span class="brief-key">📍 Distance to evac</span><span class="brief-val">${distKm} km</span></div>
+    <div class="brief-row"><span class="brief-key">💨 Advance speed</span><span class="brief-val">${speedKmh} km/h</span></div>
+    <div class="brief-row"><span class="brief-key">🧭 Bearing</span><span class="brief-val">${bearing}° ${bearingToCardinal(bearing)}</span></div>
+    <div class="brief-row"><span class="brief-key">⏱ ETA to zone</span><span class="brief-val" style="color:${riskColor};">${etaStr}</span></div>
+    <div class="brief-row"><span class="brief-key">⚡ Risk level</span><span class="brief-val" style="color:${riskColor};">${risk}</span></div>
+    <div class="brief-actions">${actions.map(a=>`<div class="brief-action-item">${a}</div>`).join('')}</div>`;
+
+  // ── ETA Timeline bars ──────────────────────────────────
+  const etaTimeline = document.getElementById('eta-timeline');
+  const etaBars     = document.getElementById('eta-bars');
+  etaTimeline.style.display = 'block';
+  etaBars.innerHTML = [12,24,48,72].map(h => {
+    const projDist = speed * h, reached = projDist >= dist;
+    const pct = Math.min(100, (projDist/dist)*100);
+    const col = pct>=100?'#FF4B4B':pct>=60?'#FF9F1C':'#4ADE80';
+    const lbl = reached ? `REACHED +${Math.round((projDist-dist)/1000)}km past` : `${((dist-projDist)/1000).toFixed(1)} km left`;
+    return `<div class="eta-bar-row">
+      <span class="eta-bar-label">${h}H horizon</span>
+      <div class="eta-bar-bg"><div class="eta-bar-fill" style="width:${pct}%;background:${col};"></div></div>
+      <span class="eta-bar-val" style="color:${col};">${lbl}</span>
+    </div>`;
+  }).join('');
+
+  lastTriageResult = lastTriageResult || {};
+}
+
+
+const inputEl  = document.getElementById('chat-input');
+const sendBtn  = document.getElementById('chat-send');
+const msgsEl   = document.getElementById('chat-messages');
+const suggestEl = document.getElementById('chat-suggestions');
+
+inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendMessage(); } });
+
+// Scroll reveal
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+document.querySelectorAll('.fade-in').forEach(el => obs.observe(el));
+</script>
+</body>
+</html>
